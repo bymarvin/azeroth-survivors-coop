@@ -620,6 +620,8 @@ def test_adapter_candidate(binary, path, directory, *, progress=None):
                 ('victory-continue', 'verify_network_boss.py', ['--victory-command', '8'], ('victory_keep_fighting',)),
                 ('victory-new-hero', 'verify_network_boss.py', ['--victory-command', '9'], ('victory_new_hero',)),
                 ('fall-unlock', 'verify_network_boss.py', ['--fall-before-victory'], ('fall_revival_unlock',)),
+                ('next-run', 'verify_next_run.py', [], ('next_run',)),
+                ('next-run-defeat', 'verify_next_run.py', ['--defeat'], ('next_run_after_defeat',)),
             )
             boss_home = None
             for name, script, arguments, cases in suites:
@@ -657,7 +659,8 @@ def test_adapter_candidate(binary, path, directory, *, progress=None):
                                     for value in ('--profile-save', f'{n}:{fixture}')]]
                             tested = run_verifier([str(ROOT / 'reconstruction' / script), *arguments],
                                 cwd=ROOT, env=environment, stdout=output,
-                                timeout=1200 if name in ('boss-rewards', 'fall-unlock') else 420)
+                                timeout=1200 if name in ('boss-rewards', 'fall-unlock') else
+                                1800 if name.startswith('next-run') else 420)
                             passed = tested.returncode == 0
                     except subprocess.TimeoutExpired:
                         passed = False
@@ -665,7 +668,7 @@ def test_adapter_candidate(binary, path, directory, *, progress=None):
                     except ValueError as error:
                         output.write(str(error) + '\n')
                         passed = False
-                patterns = (('room-player-*.jsonl',) if script.startswith('verify_room_') else
+                patterns = (('room-player-*.jsonl',) if script.startswith(('verify_room_', 'verify_next_run')) else
                             ('group-online-*.jsonl', 'network-boss-*.txt' if script == 'verify_network_boss.py'
                              else 'group-network-*.txt'))
                 for pattern in patterns:

@@ -1,5 +1,6 @@
 """Host fan-out over the existing authenticated, bounded two-peer wire codec."""
 import json
+import re
 import struct
 import time
 import queue
@@ -57,10 +58,19 @@ RECEIPT_PRUNE_SECONDS = 10.0
 ENEMY_SNAPSHOT_INTERVAL =.1  # Seconds between enemy updates per guest (.1 = 10 Hz, ~2.5x less upload).
 
 
+# Room id and invite of the directory (the EU directory is not ours: any URL-safe token, bounded).
+NEXT_ROOM = re.compile(r'[A-Za-z0-9_-]{1,64}')
+NEXT_INVITE = re.compile(r'[A-Za-z0-9_.~-]{1,128}')
+
+
 class GroupOnlineBridge(OnlineBridge):
     def __init__(self, output, number, channels):
         self.channels = dict(channels)
         self.departed = set()
+        # "Next run": the host's invitation to the following room travels over these pinned channels.
+        self.next_run_offer = None      # host: {'room', 'invite'} published to every guest
+        self.next_run_acks = set()      # host: guests that confirmed this offer
+        self.next_run_received = None   # guest: the host's offer, accepted from peer 1 only
         self.host_closing = False
         self.quiesced_peers = set()
         self.world_sent = {n: 0 for n in channels}
@@ -297,6 +307,39 @@ class GroupOnlineBridge(OnlineBridge):
             self.controls = []
             self.last_network = now
 
+    def receive_next_run(self, peer, message):
+        """The host's next-run invitation (guests, from peer 1 only) and the guests' confirmations (host)."""
+        if self.number != 1 and 'next_run' in message:
+            offer = message['next_run']
+            if peer != 1:
+                self.record(event='next_run_rejected', player=self.number, sender=peer)  # Only the host invites.
+                return
+            if (not isinstance(offer, dict) or set(offer) != {'room', 'invite'} or
+                    not isinstance(offer['room'], str) or not NEXT_ROOM.fullmatch(offer['room']) or
+                    not isinstance(offer['invite'], str) or not NEXT_INVITE.fullmatch(offer['invite'])):
+                raise ValueError('Invalid next-run invitation')
+            if offer != self.next_run_received:
+                self.next_run_received = offer
+                self.record(event='next_run_invited', player=self.number, room=offer['room'])
+                self.next_run_offered(offer)
+        elif self.number == 1 and 'next_run_seen' in message:
+            if self.next_run_offer and message['next_run_seen'] == self.next_run_offer['room'] and peer not in self.next_run_acks:
+                self.next_run_acks.add(peer)
+                self.record(event='next_run_confirmed', player=peer, room=self.next_run_offer['room'])
+
+    def next_run_offered(self, offer):
+        """Guest hook: the launcher joins the offered room once this game has closed."""
+
+    def offer_next_run(self, room, invite):
+        """Host: invite every guest to the next room over the existing channels."""
+        self.next_run_offer = dict(room=room, invite=invite)
+        self.next_run_acks = set()
+        self.record(event='next_run_offered', room=room, guests=sorted(n for n in self.members if n != 1))
+
+    def run_over(self):
+        """The host's run ended as planned (victory then New hero/Again, team defeat, give up)."""
+        return 1 in self.completed_players or 1 in self.team_defeat or bool(getattr(self, 'party_surrender', False))
+
     def record_network(self, event, **details):
         self.record(event=event, elapsed=round(time.monotonic() - self.started, 3),
             channels={n: channel.diagnostics() for n, channel in self.channels.items()
@@ -310,6 +353,8 @@ class GroupOnlineBridge(OnlineBridge):
     def decorate(self, peer, message):
         if self.number == 1:
             message['departed'] = sorted(self.departed)
+            if self.next_run_offer:
+                message['next_run'] = dict(self.next_run_offer)
             message['host_action'] = self.end_action
             message['host_map'] = getattr(self, 'host_map', None)
             self.world_sent[peer] += len(message.get('world', []))
@@ -328,6 +373,8 @@ class GroupOnlineBridge(OnlineBridge):
             if self.chest_claim and self.chest_claim.get('player', 2) != peer:
                 message.pop('claim', None)
         else:
+            if self.next_run_received:
+                message['next_run_seen'] = self.next_run_received['room']
             # This state follows final local damage capture. send_state includes
             # those damage/effect deltas in this same ordered TLS message.
             message['quiesced'] = bool(self.draining and
@@ -504,6 +551,7 @@ class GroupOnlineBridge(OnlineBridge):
         if message.get('kind') == 'goodbye':
             self.connection_ended(peer, 'left')
             return
+        self.receive_next_run(peer, message)
         if 'closing' in message and type(message['closing']) is not bool:
             raise ValueError('Invalid closing state')
         closing = message.get('closing') is True

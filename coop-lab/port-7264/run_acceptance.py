@@ -3,7 +3,7 @@
 Same suites, arguments and environment as reconstruction/build_hooks.test_adapter_candidate.
 Every run gets a fresh coop-lab/compatibility-tests/<suite>-* directory (disposable saves).
 Writes coop-lab/port-7264/out/acceptance-7264.json; the official binding run is the full
-suite list (all 21 cases incl. druid_forms, surrender, fall_revival_unlock), after which analysis/active-hooks.json can be written.
+suite list (all 23 cases incl. druid_forms, surrender, fall_revival_unlock, next_run, next_run_after_defeat), after which analysis/active-hooks.json can be written.
 
   run_acceptance.py [--suites movement,pause-revival,...]   (default: all, in the official order)
 """
@@ -41,6 +41,9 @@ SUITES = (
     # 0.0.15: every player falls once and is revived before the boss victory: next map unlocked for all four,
     # class XP credited once (the native run evaluation already ran at each fall).
     ('fall-unlock', 'verify_network_boss.py', ['--fall-before-victory'], ('fall_revival_unlock',)),
+    # 0.0.16: Next run keeps the party: victory/team defeat -> new room over the game channels -> run 2.
+    ('next-run', 'verify_next_run.py', [], ('next_run',)),
+    ('next-run-defeat', 'verify_next_run.py', ['--defeat'], ('next_run_after_defeat',)),
     # 0.95.0: druid Cat/Dire Bear forms (display model) of host and guest reach every client.
     ('druid-forms', 'verify_druid_forms.py', [], ('druid_forms',)),
     # 0.95.0: menu "give up" - a guest leaves alone, the host ends the run for everyone.
@@ -113,14 +116,15 @@ def main():
         with (home / 'verification.log').open('w', encoding='utf-8') as output:
             try:
                 tested = run_verifier([str(ROOT / 'reconstruction' / script), *arguments, *extra], cwd=ROOT, env=env,
-                                      stdout=output, timeout=1200 if name in ('boss-rewards', 'fall-unlock') else 420)
+                                      stdout=output, timeout=(1200 if name in ('boss-rewards', 'fall-unlock') else
+                                                                1800 if name.startswith('next-run') else 420))
                 passed = tested.returncode == 0
             except subprocess.TimeoutExpired:
                 passed, timed_out = False, True
             except ValueError as error:
                 output.write(str(error) + '\n')
                 passed = False
-        patterns = (('room-player-*.jsonl',) if script.startswith('verify_room_') else
+        patterns = (('room-player-*.jsonl',) if script.startswith(('verify_room_', 'verify_next_run')) else
                     ('group-online-*.jsonl', 'network-boss-*.txt' if script == 'verify_network_boss.py' else 'group-network-*.txt'))
         for pattern in patterns:
             for source in (ROOT / 'analysis').glob(pattern):

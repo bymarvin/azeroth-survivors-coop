@@ -79,6 +79,25 @@ def failure_description(error, directory):
 # Published when the host has no reachable port. Every directory version accepts
 # it and earlier clients sent it too; guests then use the relay.
 NO_DIRECT_OFFER = '127.0.0.1'
+# "Next run": seconds the host waits for confirmations before closing the game, and for the
+# confirmed guests to rejoin before it starts without the missing ones.
+NEXT_RUN_CONFIRM = 10
+NEXT_RUN_WAIT = 120
+
+
+def next_run_closing(bridge, next_room, now):
+    """Host game thread: close the game for the next run once every guest confirmed, or after NEXT_RUN_CONFIRM s.
+
+    Guests that never confirm (left, hung, or a 0.0.15 launcher that ignores the invitation) are not waited for.
+    """
+    if not next_room or not bridge.next_run_offer or next_room['expected'] is not None:
+        return False
+    guests = {n for n in bridge.members if n != 1} - bridge.departed
+    if not bridge.next_run_acks >= guests and now - next_room['offered'] <= NEXT_RUN_CONFIRM:
+        return False
+    next_room['expected'] = sorted(bridge.next_run_acks & guests)
+    bridge.record(event='next_run_closing', confirmed=next_room['expected'], missing=sorted(guests - bridge.next_run_acks))
+    return True
 
 
 class RoomClient:
@@ -94,6 +113,8 @@ class RoomClient:
         self.profile = LauncherProfile(profile_folder or ROOT / 'coop-lab' /
             ('launcher-' + secrets.token_hex(8) if self.isolated_profile else 'launcher'))
         self.membership = self.room = self.pairing = None
+        self.next_room = None    # host: the following room (membership, confirmed guests, waiting since)
+        self.next_invite = None  # guest: the host's invitation, joined once the current game has closed
         self.status, self.error = 'Choose a room or host your own.', None
         self.events, self.commands = queue.Queue(32), queue.Queue(32)
         self.bridge = None
@@ -108,10 +129,10 @@ class RoomClient:
         self.build = hashlib.sha256(Path(os.environ.get('COOP_EXECUTABLE', ROOT / 'AzerothSurvivors.exe')).read_bytes()).hexdigest()
         self.version = game_version(Path(os.environ.get('COOP_EXECUTABLE', ROOT / 'AzerothSurvivors.exe')), self.build)
 
-    def request(self, path, data=None, authenticated=False):
+    def request(self, path, data=None, authenticated=False, token=None):
         headers = {'Content-Type': 'application/json'}
-        if authenticated:
-            headers['Authorization'] = 'Bearer ' + self.membership['token']
+        if authenticated or token:
+            headers['Authorization'] = 'Bearer ' + (token or self.membership['token'])
         request = urllib.request.Request(self.directory + path,
             None if data is None else json.dumps(data).encode(), headers)
         with urllib.request.urlopen(request, timeout=20) as response:
@@ -257,7 +278,12 @@ class RoomClient:
                 raise ValueError('Join a room first')
             if action == 'leave':
                 self.cancel.set()
+                self.next_invite = None  # A guest who leaves between runs stays out of the next one.
+                self.drop_next_room()
                 self.leave_membership(self.room['id'], 'Left the room.')
+                return
+            if action == 'next_run':
+                self.next_run()
                 return
             if action == 'start':
                 current = hashlib.sha256(Path(os.environ.get('COOP_EXECUTABLE', ROOT / 'AzerothSurvivors.exe')).read_bytes()).hexdigest()
@@ -277,6 +303,108 @@ class RoomClient:
             self.room = result
             if self.routes:
                 self.routes.update(dict(self.room))
+
+    def next_run(self):
+        """Host: open the following room and invite the party over the running game's channels.
+
+        The directory is unchanged: a new private room (same name and region) with the same host
+        connection and pairing, so guests can verify it is this host's room. The game closes once every
+        guest confirmed (at most NEXT_RUN_CONFIRM s); the launcher then switches to the new room.
+        """
+        bridge = self.bridge
+        if self.room['slot'] != 1:
+            raise ValueError('Only the host starts the next run.')
+        if self.next_room:
+            raise ValueError('The next run is already being prepared.')
+        if bridge is None or not hasattr(bridge, 'offer_next_run') or not bridge.run_over():
+            raise ValueError('Finish the current run first (victory, defeat or give up).')
+        connection = self.room.get('connection') or {}
+        host = next(p['name'] for p in self.room['players'] if p['slot'] == 1)
+        membership = self.request('/create', dict(name=self.room['name'], player=host, private=True, build=self.build,
+                                                  region=self.room.get('region'), version=self.version))
+        try:
+            membership['room'] = self.request('/connection', dict(room=membership['room']['id'],
+                address=connection['address'], port=connection['port'], fingerprint=connection['fingerprint']),
+                token=membership['token'])
+        except Exception:
+            self.drop_next_room(membership)
+            raise
+        self.next_room = dict(membership=membership, offered=time.monotonic(), expected=None, since=None, polled=0)
+        bridge.offer_next_run(membership['room']['id'], membership['room']['invite'])
+        self.status = 'Next run: inviting the party…'
+
+    def drop_next_room(self, membership=None):
+        """Close a prepared next room (host leaves or the old game failed); best effort."""
+        membership = membership or (self.next_room or {}).get('membership')
+        self.next_room = None
+        if membership:
+            try:
+                self.request('/action', dict(room=membership['room']['id'], action='leave',
+                                             revision=membership['room']['revision']), token=membership['token'])
+            except Exception:
+                pass  # It expires without polls anyway.
+
+    def switch_to_next_room(self, next_room):
+        """Host, after the old game closed: the prepared room becomes the current one."""
+        with self.lock:
+            self.reset_session()
+            self.membership = next_room['membership']
+            self.room = self.membership['room']
+            self.start_routes()
+            next_room['since'] = time.monotonic()
+            self.next_room = next_room
+            count = len(next_room['expected'])
+            self.status = (f'Next run: waiting for {count} player{"s" if count != 1 else ""} to rejoin…' if count else
+                           'Next run: nobody confirmed. Start alone or wait for players to join with the invite.')
+
+    def invited(self, offer, room):
+        """Guest game thread: the host's invitation (pinned channel, peer 1); joined after this game closes."""
+        if self.cancel.is_set():
+            return  # Leaving: never rejoin.
+        me = next(p['name'] for p in room['players'] if p['slot'] == room['slot'])
+        self.next_invite = dict(offer, player=me, region=room.get('region'), fingerprint=room['connection']['fingerprint'])
+        self.status = 'The host started the next run. You rejoin automatically when this game closes (or Leave).'
+
+    def join_next_run(self):
+        """Guest, once the previous game has closed: join the host's next room, only if it is this host's."""
+        offer, self.next_invite = self.next_invite, None
+        try:
+            self.join(offer['player'], code=f'{offer["room"]}:{offer["invite"]}', region=offer['region'])
+        except Exception as error:
+            self.status = 'Could not join the next run. Choose a room or host your own.'
+            self.error = 'Next run: ' + failure_description(error, self.directory)
+            return
+        if (self.room.get('connection') or {}).get('fingerprint') != offer['fingerprint']:
+            self.leave_membership(self.room['id'], 'Not joined: the next-run room does not belong to your host.')
+            self.error = 'The invitation did not lead to your host\'s room; nothing was joined.'
+            return
+        self.status = 'Rejoined the party for the next run. Waiting for the host to start.'
+
+    def next_run_due(self):
+        """Host heartbeat: keep the prepared room alive; start once the confirmed guests are back."""
+        next_room, now = self.next_room, time.monotonic()
+        if next_room['since'] is None:
+            if now - next_room['polled'] >= 10:  # The directory retires members silent for 60 s.
+                next_room['polled'] = now
+                membership = next_room['membership']
+                membership['room'] = self.request('/poll', dict(room=membership['room']['id']), token=membership['token'])
+            return
+        if self.room['id'] != next_room['membership']['room']['id'] or self.room['phase'] != 'lobby':
+            self.next_room = None
+            return
+        expected = next_room['expected']
+        names = {p['slot']: p['name'] for p in self.room['players']}
+        if not expected or len(names) - 1 < len(expected) and now - next_room['since'] < NEXT_RUN_WAIT:
+            return
+        self.next_room = None
+        if len(names) == 1:
+            self.status = 'Nobody rejoined in time. Start alone, or share the invite and start when the party is back.'
+            return
+        self.room = self.request('/action', dict(room=self.room['id'], action='start', revision=self.room['revision'],
+                                                 build=self.build), True)
+        missing = len(expected) - (len(names) - 1)
+        self.status = ('Next run started.' if missing <= 0 else
+                       f'Next run started without {missing} player{"s" if missing != 1 else ""} who did not rejoin in time.')
 
     def queue_game_command(self, command):
         try:
@@ -299,7 +427,7 @@ class RoomClient:
                 raise ValueError('Join a room first')
             self.room = self.request('/chat', dict(room=self.room['id'], text=text), True)
 
-    def leave_membership(self, room_id, status):
+    def leave_membership(self, room_id, status, keep_mapping=False):
         """Retire this session only; never clear a subsequently joined room."""
         with self.lock:
             if not self.membership or not self.room or self.room['id'] != room_id:
@@ -321,7 +449,8 @@ class RoomClient:
                     self.routes = None
                     self.membership = self.room = None
                     self.status = status
-                    self.release_mapping()
+                    if not keep_mapping:  # The next room keeps the host's port and router mapping.
+                        self.release_mapping()
 
     def poll_room(self):
         """Only a rejected membership poll means the room has disappeared."""
@@ -356,6 +485,11 @@ class RoomClient:
         while not self.stopped.wait(.5):
             try:
                 with self.lock:
+                    if (getattr(self, 'next_invite', None) and not self.membership
+                            and not (self.worker and self.worker.is_alive())):
+                        self.join_next_run()
+                    if getattr(self, 'next_room', None):
+                        self.next_run_due()
                     if not self.membership or getattr(self, 'room_detached', False):
                         continue
                     if not self.poll_room():
@@ -497,7 +631,8 @@ class RoomClient:
                     if event.get('event') == 'guest_departed':
                         owner.status = f'Player {event.get("player")} left. The remaining party can keep playing.'
                     if event.get('event') == 'party_restart_requires_lobby':
-                        owner.status = 'Return to the room browser and form a new room for the next run.'
+                        owner.status = ('Press Next run in the room browser to play the next map with this party.'
+                                        if number == 1 else 'Waiting for the host to start the next run (or Leave).')
                     if event.get('event') == 'party_waiting_for_map':
                         owner.status = 'Choose your class and gear. Enter the game after the host confirms the map.'
                     if (event.get('event') == 'native_state' and event.get('player') == number
@@ -510,10 +645,15 @@ class RoomClient:
                         owner.game_event(event['command'])
                     super().record(**event)
 
+                def next_run_offered(self, offer):
+                    owner.invited(offer, room)
+
                 def poll_network(self):
                     if owner.cancel.is_set() or owner.stopped.is_set():
                         self.stop_requested = True
                         return
+                    if number == 1 and next_run_closing(self, owner.next_room, time.monotonic()):
+                        self.stop_requested = True  # Normal drain and save; the launcher switches rooms.
                     if owner.room_detached and not getattr(self, 'room_listing_logged', False):
                         self.room_listing_logged = True  # Logged on the game thread only.
                         self.record(event='room_listing_lost', room=room['id'])
@@ -529,7 +669,8 @@ class RoomClient:
                         if number != 1 and previous_map is None and self.host_map is not None:
                             owner.status = 'Host map confirmed. Finish your class and gear, then enter the game.'
 
-            with (ROOT / f'analysis/room-player-{number}.jsonl').open('w') as output:
+            # Acceptance of several runs in a row (next run) keeps each run's log: log_suffix per run.
+            with (ROOT / f'analysis/room-player-{number}{getattr(self, "log_suffix", "")}.jsonl').open('w') as output:
                 gameplay_log = Path(output.name)
                 bridge = Game(output, number, channels) if channels else Game(output)
                 if self.diagnostic_autostart:
@@ -608,12 +749,24 @@ class RoomClient:
                 print(report_status, file=sys.stderr, flush=True)
                 if self.error:
                     self.error += ' ' + report_status
-            status = (self.status if self.status.startswith('The host ended') else
+            next_room = self.next_room if room.get('slot') == 1 else None
+            if next_room and (next_room['expected'] is None or crash_log or self.stopped.is_set()):
+                self.drop_next_room()  # The old game did not close for the next run.
+                next_room = None
+            status = (self.status if self.status.startswith('The host ended') or self.next_invite else
                       'The game session ended. Join or create a room to play again.')
             try:
-                self.leave_membership(room['id'], status)
+                self.leave_membership(room['id'], status, keep_mapping=bool(next_room))
             except Exception as error:
                 self.profile.log_exception(error, room.get('slot', 1), 'room cleanup')
+            if next_room:
+                try:
+                    self.switch_to_next_room(next_room)
+                except Exception as error:
+                    self.profile.log_exception(error, 1, 'next run')
+                    self.error = 'Next run could not open the new room: ' + failure_description(error, self.directory)
+                    self.drop_next_room(next_room['membership'])
+                    self.release_mapping()
 
     def state(self):
         with self.lock:
@@ -640,8 +793,11 @@ class RoomClient:
             status = self.status + (' ' + self.profile.warning if self.profile.warning else '')
             if getattr(self, 'firewall_hint', None) and room and room.get('slot') == 1:
                 status += ' ' + self.firewall_hint
+            next_run = dict(available=bool(room and room['slot'] == 1 and bridge is not None and not self.next_room
+                                           and hasattr(bridge, 'offer_next_run') and bridge.run_over()),
+                            preparing=bool(self.next_room), invited=bool(self.next_invite))
             return dict(room=room, status=status, error=self.error, guest_entry=entry, routes=routes, latency=latency,
-                        connection_error=self.routes.error if self.routes else None)
+                        connection_error=self.routes.error if self.routes else None, next_run=next_run)
 
     def shutdown(self):
         self.stopped.set()

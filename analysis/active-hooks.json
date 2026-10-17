@@ -1553,10 +1553,10 @@
    "pe_parser": "2024.8.26",
    "sources": {
     "reconstruction\\boss_rewards.py": "6e57729146cacffb42e7c569109caaeed60e6b293e993af4272c8a068573f117",
-    "reconstruction\\build_hooks.py": "df37fc645e50de04a0158f7eb1a4ea289d8a9b62b283bb33c452d83d3a9caa00",
+    "reconstruction\\build_hooks.py": "77a8b5967dfde2b06aef115d895cc98af352b3fcda8beb0193936b79b6693e99",
     "reconstruction\\coop_transport.py": "4702bef1493f518bf6f3dd397aa8517ab44ed55aec62ff78f25dde2b6c71083e",
     "reconstruction\\crash_reports.py": "58d025727ad5a1bfb81307a49d777a33fbf369f6661c3e276651c217b33362c8",
-    "reconstruction\\group_online.py": "03e2870411760a11292fc185a060df88803894baafefd2081edacd5573393dab",
+    "reconstruction\\group_online.py": "296fa23e7f2357b894d32fc1e053f8fca3342af61f259817775d3261f163dc77",
     "reconstruction\\guest_auras.py": "21a76b241715790ac6eec38ff04f9fe290bc9391e9005b4252866ecab63b06f6",
     "reconstruction\\launcher_profile.py": "f3b7dad1d34c220f0eb45f09a04bbb7c9b3748f08227d826591383028d29f209",
     "reconstruction\\lobby.py": "edc5e2e6971e5f6f45e7519b6b1ca85ee82bd41df2914609e43c48df55cc8286",
@@ -1573,13 +1573,13 @@
     "reconstruction\\play_limits.py": "3ac73f160f234c3136ceac512563ed91f4ddfb83c1d91c7b2b582a169e3b120d",
     "reconstruction\\port_mapping.py": "40beb51eb338bf978bae474e88551501c9570b18e0aa3c413f95e00fa7444b47",
     "reconstruction\\probe_native_menu.py": "33e30fad55639246c0bd985527365035d7a9417813d5320f81e9d0241a04d154",
-    "reconstruction\\room_client.py": "ef6484f410d68c49c8d1ecf9a4540fc7579e63ff62202e216fcb1a446eefecbf",
-    "reconstruction\\runtime_addresses.py": "723266f4ea9bcd4c69303b6d88b8d859a10b238e5acfbb24f61dc09f89af7c3f",
+    "reconstruction\\room_client.py": "83beef0ec3942a271676aa47d8f155b1e71ba386d234e67ab049b00a9addd9d8",
+    "reconstruction\\runtime_addresses.py": "4a4c859dfe89485b248c87eb838cdae8f213d4e21755afee9e0549fdd475ec38",
     "reconstruction\\self_update.py": "0f4687a96bf005fc2df9bb4406a17ad6f8d2614e359b5d3af76e4f5b123f594c",
     "reconstruction\\sessions.py": "ec98c8c0674da749b7cc9ebfb688f1cbf4b420267a38eedd6be4a94177f19433",
     "reconstruction\\test_automatic_observation.py": "a27c20b520906e7f35f9f69692a1258077211a7565a60c73bfdc46b10f57aff3",
     "reconstruction\\test_boss_rewards.py": "7c0c64eaa5bd36de7c0fbb6cac47102c9eb0aca5b04487586d35b5a3d55c1d17",
-    "reconstruction\\test_build_discovery.py": "e4db741d39214556a801e828945e23e7ab8034594ac6d9a255fc31812af40387",
+    "reconstruction\\test_build_discovery.py": "03edc46aeb0e616c16e3dffcd9f4a06dff49199f04017495857c6f56645a100d",
     "reconstruction\\test_candidate_rooms.py": "d843e10c4fa05e285d990dd9017bd340924b9802dbbc9b0ae59b76cdfd54c443",
     "reconstruction\\test_character_names.py": "d9b78cf0252167dca8a133e02b084be791cc8eb6949d0f78ac24d7e8ca6e7bee",
     "reconstruction\\test_completed_reports.py": "e3cb04d7e4bbb49afc5c394e6622d492672d7f5dd6d2f389aa2c9d22d4b518ed",
@@ -1593,7 +1593,7 @@
     "reconstruction\\test_field_discovery.py": "81970837863130fa0c7b4c9b2883119c2dbc5975a26452c1631735e513cb91c4",
     "reconstruction\\test_gear_observation.py": "c6dbb6176c1c1e308334352294034cd36c6d081774c9c173aaf31d2d44eaf7ff",
     "reconstruction\\test_group.py": "f42139fdb500bec71aafc5d3308643d2bb4968368a5a44c77b95013472a51e0e",
-    "reconstruction\\test_guest_fixes.py": "ed25dec1c40620e3b69a5a65d0ee8d34eeef2b2e77e68ae3a780bb9befee695f",
+    "reconstruction\\test_guest_fixes.py": "3e1ce1cc856c5c98e0d97b2bad360342b60ac16bca6f4c39b825d89f4066b20e",
     "reconstruction\\test_incoming_hits.py": "18774f4ef36959b21380088cba96a57c67b595ff1733b3c61a122fcfc15381f9",
     "reconstruction\\test_jump_totems.py": "ae172d666c7ffc9e5d2e50be24f730513fda571ae7cc781e89772f5ca6b54e65",
     "reconstruction\\test_latency.py": "964f374015ee673afd81837710b2978a1ee8ce057cae3e87b334dc24bfcf7a03",
@@ -1613,6 +1613,7 @@
     "reconstruction\\test_native_shutdown.py": "975f1b40fd878b93dfbf17a6620cf622015a2b0610008d9eaf996aba2f3f1062",
     "reconstruction\\test_native_test_process.py": "5ba016d6fe181c560fc06ebadd68454904c86c4053520806eeea59b8d982b4e1",
     "reconstruction\\test_network_boss_acceptance.py": "f43f45757c7f4b3a556d668c8930bbe2f43232cd71380d7a5afe1f84d538e499",
+    "reconstruction\\test_next_run.py": "908362aa3c4c55b2bc9fc68cd30d18e9c4f6eca8fafccc420194f6476bbac634",
     "reconstruction\\test_party_departure.py": "28f37c87e8fac9912716f4255998354342830e62594d6f57b94ead7eac3489c1",
     "reconstruction\\test_party_economy.py": "6dca6c47fc9b876f7a9d2f70c22185c137f04235841e9bebc65962f98e529542",
     "reconstruction\\test_party_evidence.py": "be6420a45c41282e0238e92b852c24c51b40d8bc12ac2b11fbb75e1165e53320",
@@ -1649,9 +1650,10 @@
     "reconstruction\\verify_guest_abilities.py": "cda94ba3d89b3763203607cab673bf8b5f494ef14809772cb96183ece155448a",
     "reconstruction\\verify_native_combat.py": "a722bf40e5e115bfcc7a5682014e9e53122396f6b56d211d70fbb2b115bca2b7",
     "reconstruction\\verify_native_input.py": "dcf657621ef9e025769a6e595654ddfecee1a1a3cc75498635b6da9e39202cc8",
-    "reconstruction\\verify_network_boss.py": "7e55c65454c95f2f0d72361938d42e0111ce2963ae56dcd13c570c7acfb9c79b",
+    "reconstruction\\verify_network_boss.py": "1901539f64864dde5c5b52d9c0f86a77de188c4502d3c122d6bc19df86681733",
     "reconstruction\\verify_network_coop.py": "a9fe90f24e216c5dc37e6d0dd2e346fbeb5141f9bff4970dc60eccb691ae5e6f",
     "reconstruction\\verify_network_economy.py": "f63f1f5fa8ef6970b9d2388f38112f7523ae03c75e50b10c4d7a8c9788c9693a",
+    "reconstruction\\verify_next_run.py": "88da9fd32126151cb480156c42e35ac36fa5e707ef6a551889b307e781393e68",
     "reconstruction\\verify_party_evidence.py": "886ae72ac4a3410b0befdc0af3298fb16b8237489cf9474e373831acee31d579",
     "reconstruction\\verify_pursuit.py": "692ebbfa269b53bef3b71e943b0a1b8d7500c439bb3c0911c1112c5217cb2bd4",
     "reconstruction\\verify_restart.py": "5b0a9d69d4593e9f38e2c0f2bf0e4225a6392c07b45a798965b19c0554345de2",
@@ -1702,10 +1704,10 @@
     "pe_parser": "2024.8.26",
     "sources": {
      "reconstruction\\boss_rewards.py": "6e57729146cacffb42e7c569109caaeed60e6b293e993af4272c8a068573f117",
-     "reconstruction\\build_hooks.py": "df37fc645e50de04a0158f7eb1a4ea289d8a9b62b283bb33c452d83d3a9caa00",
+     "reconstruction\\build_hooks.py": "77a8b5967dfde2b06aef115d895cc98af352b3fcda8beb0193936b79b6693e99",
      "reconstruction\\coop_transport.py": "4702bef1493f518bf6f3dd397aa8517ab44ed55aec62ff78f25dde2b6c71083e",
      "reconstruction\\crash_reports.py": "58d025727ad5a1bfb81307a49d777a33fbf369f6661c3e276651c217b33362c8",
-     "reconstruction\\group_online.py": "03e2870411760a11292fc185a060df88803894baafefd2081edacd5573393dab",
+     "reconstruction\\group_online.py": "296fa23e7f2357b894d32fc1e053f8fca3342af61f259817775d3261f163dc77",
      "reconstruction\\guest_auras.py": "21a76b241715790ac6eec38ff04f9fe290bc9391e9005b4252866ecab63b06f6",
      "reconstruction\\launcher_profile.py": "f3b7dad1d34c220f0eb45f09a04bbb7c9b3748f08227d826591383028d29f209",
      "reconstruction\\lobby.py": "edc5e2e6971e5f6f45e7519b6b1ca85ee82bd41df2914609e43c48df55cc8286",
@@ -1722,13 +1724,13 @@
      "reconstruction\\play_limits.py": "3ac73f160f234c3136ceac512563ed91f4ddfb83c1d91c7b2b582a169e3b120d",
      "reconstruction\\port_mapping.py": "40beb51eb338bf978bae474e88551501c9570b18e0aa3c413f95e00fa7444b47",
      "reconstruction\\probe_native_menu.py": "33e30fad55639246c0bd985527365035d7a9417813d5320f81e9d0241a04d154",
-     "reconstruction\\room_client.py": "ef6484f410d68c49c8d1ecf9a4540fc7579e63ff62202e216fcb1a446eefecbf",
-     "reconstruction\\runtime_addresses.py": "723266f4ea9bcd4c69303b6d88b8d859a10b238e5acfbb24f61dc09f89af7c3f",
+     "reconstruction\\room_client.py": "83beef0ec3942a271676aa47d8f155b1e71ba386d234e67ab049b00a9addd9d8",
+     "reconstruction\\runtime_addresses.py": "4a4c859dfe89485b248c87eb838cdae8f213d4e21755afee9e0549fdd475ec38",
      "reconstruction\\self_update.py": "0f4687a96bf005fc2df9bb4406a17ad6f8d2614e359b5d3af76e4f5b123f594c",
      "reconstruction\\sessions.py": "ec98c8c0674da749b7cc9ebfb688f1cbf4b420267a38eedd6be4a94177f19433",
      "reconstruction\\test_automatic_observation.py": "a27c20b520906e7f35f9f69692a1258077211a7565a60c73bfdc46b10f57aff3",
      "reconstruction\\test_boss_rewards.py": "7c0c64eaa5bd36de7c0fbb6cac47102c9eb0aca5b04487586d35b5a3d55c1d17",
-     "reconstruction\\test_build_discovery.py": "e4db741d39214556a801e828945e23e7ab8034594ac6d9a255fc31812af40387",
+     "reconstruction\\test_build_discovery.py": "03edc46aeb0e616c16e3dffcd9f4a06dff49199f04017495857c6f56645a100d",
      "reconstruction\\test_candidate_rooms.py": "d843e10c4fa05e285d990dd9017bd340924b9802dbbc9b0ae59b76cdfd54c443",
      "reconstruction\\test_character_names.py": "d9b78cf0252167dca8a133e02b084be791cc8eb6949d0f78ac24d7e8ca6e7bee",
      "reconstruction\\test_completed_reports.py": "e3cb04d7e4bbb49afc5c394e6622d492672d7f5dd6d2f389aa2c9d22d4b518ed",
@@ -1742,7 +1744,7 @@
      "reconstruction\\test_field_discovery.py": "81970837863130fa0c7b4c9b2883119c2dbc5975a26452c1631735e513cb91c4",
      "reconstruction\\test_gear_observation.py": "c6dbb6176c1c1e308334352294034cd36c6d081774c9c173aaf31d2d44eaf7ff",
      "reconstruction\\test_group.py": "f42139fdb500bec71aafc5d3308643d2bb4968368a5a44c77b95013472a51e0e",
-     "reconstruction\\test_guest_fixes.py": "ed25dec1c40620e3b69a5a65d0ee8d34eeef2b2e77e68ae3a780bb9befee695f",
+     "reconstruction\\test_guest_fixes.py": "3e1ce1cc856c5c98e0d97b2bad360342b60ac16bca6f4c39b825d89f4066b20e",
      "reconstruction\\test_incoming_hits.py": "18774f4ef36959b21380088cba96a57c67b595ff1733b3c61a122fcfc15381f9",
      "reconstruction\\test_jump_totems.py": "ae172d666c7ffc9e5d2e50be24f730513fda571ae7cc781e89772f5ca6b54e65",
      "reconstruction\\test_latency.py": "964f374015ee673afd81837710b2978a1ee8ce057cae3e87b334dc24bfcf7a03",
@@ -1762,6 +1764,7 @@
      "reconstruction\\test_native_shutdown.py": "975f1b40fd878b93dfbf17a6620cf622015a2b0610008d9eaf996aba2f3f1062",
      "reconstruction\\test_native_test_process.py": "5ba016d6fe181c560fc06ebadd68454904c86c4053520806eeea59b8d982b4e1",
      "reconstruction\\test_network_boss_acceptance.py": "f43f45757c7f4b3a556d668c8930bbe2f43232cd71380d7a5afe1f84d538e499",
+     "reconstruction\\test_next_run.py": "908362aa3c4c55b2bc9fc68cd30d18e9c4f6eca8fafccc420194f6476bbac634",
      "reconstruction\\test_party_departure.py": "28f37c87e8fac9912716f4255998354342830e62594d6f57b94ead7eac3489c1",
      "reconstruction\\test_party_economy.py": "6dca6c47fc9b876f7a9d2f70c22185c137f04235841e9bebc65962f98e529542",
      "reconstruction\\test_party_evidence.py": "be6420a45c41282e0238e92b852c24c51b40d8bc12ac2b11fbb75e1165e53320",
@@ -1798,9 +1801,10 @@
      "reconstruction\\verify_guest_abilities.py": "cda94ba3d89b3763203607cab673bf8b5f494ef14809772cb96183ece155448a",
      "reconstruction\\verify_native_combat.py": "a722bf40e5e115bfcc7a5682014e9e53122396f6b56d211d70fbb2b115bca2b7",
      "reconstruction\\verify_native_input.py": "dcf657621ef9e025769a6e595654ddfecee1a1a3cc75498635b6da9e39202cc8",
-     "reconstruction\\verify_network_boss.py": "7e55c65454c95f2f0d72361938d42e0111ce2963ae56dcd13c570c7acfb9c79b",
+     "reconstruction\\verify_network_boss.py": "1901539f64864dde5c5b52d9c0f86a77de188c4502d3c122d6bc19df86681733",
      "reconstruction\\verify_network_coop.py": "a9fe90f24e216c5dc37e6d0dd2e346fbeb5141f9bff4970dc60eccb691ae5e6f",
      "reconstruction\\verify_network_economy.py": "f63f1f5fa8ef6970b9d2388f38112f7523ae03c75e50b10c4d7a8c9788c9693a",
+     "reconstruction\\verify_next_run.py": "88da9fd32126151cb480156c42e35ac36fa5e707ef6a551889b307e781393e68",
      "reconstruction\\verify_party_evidence.py": "886ae72ac4a3410b0befdc0af3298fb16b8237489cf9474e373831acee31d579",
      "reconstruction\\verify_pursuit.py": "692ebbfa269b53bef3b71e943b0a1b8d7500c439bb3c0911c1112c5217cb2bd4",
      "reconstruction\\verify_restart.py": "5b0a9d69d4593e9f38e2c0f2bf0e4225a6392c07b45a798965b19c0554345de2",
@@ -1846,78 +1850,91 @@
     {
      "name": "pause-revival",
      "passed": true,
-     "evidence": "coop-lab\\compatibility-tests\\pause-revival-7ssriwud",
+     "evidence": "coop-lab\\compatibility-tests\\pause-revival-0cu_dejc",
      "seconds": 38
     },
     {
      "name": "boss-rewards",
      "passed": true,
-     "evidence": "coop-lab\\compatibility-tests\\boss-rewards-7deh94e3",
-     "seconds": 77
+     "evidence": "coop-lab\\compatibility-tests\\boss-rewards-rv7ahbda",
+     "seconds": 80
     },
     {
      "name": "room-menus",
      "passed": true,
-     "evidence": "coop-lab\\compatibility-tests\\room-menus-f0z2zsk_",
-     "seconds": 38
+     "evidence": "coop-lab\\compatibility-tests\\room-menus-9m9_u6ka",
+     "seconds": 39
     },
     {
      "name": "room-gear",
      "passed": true,
-     "evidence": "coop-lab\\compatibility-tests\\room-gear-ijawains",
-     "seconds": 47
+     "evidence": "coop-lab\\compatibility-tests\\room-gear-u2ah_olf",
+     "seconds": 48
     },
     {
      "name": "menu-departure",
      "passed": true,
-     "evidence": "coop-lab\\compatibility-tests\\menu-departure-1qreupix",
-     "seconds": 25
+     "evidence": "coop-lab\\compatibility-tests\\menu-departure-s22getk1",
+     "seconds": 27
     },
     {
      "name": "movement",
      "passed": true,
-     "evidence": "coop-lab\\compatibility-tests\\movement-wxjrs7n1",
-     "seconds": 126
+     "evidence": "coop-lab\\compatibility-tests\\movement-ivhnc066",
+     "seconds": 127
     },
     {
      "name": "economy",
      "passed": true,
-     "evidence": "coop-lab\\compatibility-tests\\economy-96_3pms_",
+     "evidence": "coop-lab\\compatibility-tests\\economy-u8the9ne",
      "seconds": 16
     },
     {
      "name": "victory-continue",
      "passed": true,
-     "evidence": "coop-lab\\compatibility-tests\\victory-continue-r55tra_k",
-     "seconds": 50
+     "evidence": "coop-lab\\compatibility-tests\\victory-continue-oolxxbqu",
+     "seconds": 49
     },
     {
      "name": "victory-new-hero",
      "passed": true,
-     "evidence": "coop-lab\\compatibility-tests\\victory-new-hero-i_i8d8f5",
+     "evidence": "coop-lab\\compatibility-tests\\victory-new-hero-28ebpdaf",
      "seconds": 54
     },
     {
      "name": "fall-unlock",
      "passed": true,
-     "evidence": "coop-lab\\compatibility-tests\\fall-unlock-_lp0poeq",
+     "evidence": "coop-lab\\compatibility-tests\\fall-unlock-mvdmpbrj",
      "seconds": 78
+    },
+    {
+     "name": "next-run",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\next-run-q9cp1yf8",
+     "seconds": 150
+    },
+    {
+     "name": "next-run-defeat",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\next-run-defeat-e97hrix2",
+     "seconds": 122
     },
     {
      "name": "druid-forms",
      "passed": true,
-     "evidence": "coop-lab\\compatibility-tests\\druid-forms-ni5tmf8e",
-     "seconds": 65
+     "evidence": "coop-lab\\compatibility-tests\\druid-forms-h9yfmm16",
+     "seconds": 64
     },
     {
      "name": "surrender",
      "passed": true,
-     "evidence": "coop-lab\\compatibility-tests\\surrender-0c5vb7ds",
+     "evidence": "coop-lab\\compatibility-tests\\surrender-u44qgp_0",
      "seconds": 79
     }
    ],
    "cases": {
-    "fall_revival_unlock": "passed",
+    "next_run": "passed",
+    "next_run_after_defeat": "passed",
     "pause_resume": "passed",
     "revival": "passed",
     "shared_xp": "passed",
@@ -1936,6 +1953,7 @@
     "shared_gold": "passed",
     "victory_keep_fighting": "passed",
     "victory_new_hero": "passed",
+    "fall_revival_unlock": "passed",
     "druid_forms": "passed",
     "surrender": "passed"
    },

@@ -1,7 +1,8 @@
 """Bind the passed 0.95.0 (7264d50b) native acceptance into analysis/active-hooks.json (boot-log format).
 
 Writes {adapter_profile: release profile + identity + native_acceptance, menu_contract, progression_call_contract}
-only when every one of the 21 required cases (18 + druid_forms, surrender, fall_revival_unlock) passed with the current source identity, keeps a backup of the
+only when every one of the 23 required cases (18 + druid_forms, surrender, fall_revival_unlock, next_run,
+next_run_after_defeat) passed with the current source identity, keeps a backup of the
 previous file, then loads the game through the normal (non-isolated) launch path as a check.
 """
 import json
@@ -16,7 +17,7 @@ sys.path.insert(0, str(ROOT / 'reconstruction'))
 REQUIRED = {'concurrent_menus', 'class_gear_selection', 'host_map', 'four_player_movement', 'four_player_combat',
             'bosses', 'shared_xp', 'shared_gold', 'independent_talents', 'independent_loot', 'pause_resume',
             'revival', 'saves', 'guest_departure', 'host_shutdown', 'victory_keep_fighting', 'victory_new_hero',
-            'map_progression', 'druid_forms', 'surrender', 'fall_revival_unlock'}
+            'map_progression', 'druid_forms', 'surrender', 'fall_revival_unlock', 'next_run', 'next_run_after_defeat'}
 
 
 def log(tag, text):

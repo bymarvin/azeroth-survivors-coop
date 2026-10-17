@@ -8,10 +8,10 @@ import subprocess
 import sys
 import time
 
-from boss_rewards import RNG, reward_items
+from boss_rewards import RNG, native_map, reward_items
 from group_online import GroupOnlineBridge
 from native_probe import ROOT, CHOOSE, DAMAGE, HURT, SPAWN_BOSS, UI_COMMAND, MAP_SELECT, ACTIVE_HASH, allocate, checked, game_field, q, _candidate_home
-from updated_layout import rva as relocated, field, enemy_layout
+from updated_layout import field, enemy_layout
 from world_packets import UPDATE, objects, Reader
 
 
@@ -181,8 +181,9 @@ class NetworkBossVerification(GroupOnlineBridge):
                         stride, guid_offset = enemy_layout()[:2]
                         self.boss_guid = q(client.memory(pointer + (count - 1) * stride + guid_offset, 8))
                         self.record(event='network_boss_spawned', guid=self.boss_guid)
-                    client.call_before(context, SPAWN_BOSS, game,
-                                       client.base + relocated(0x65EFA08) + 4 * 0x58, after=completed)
+                    # Boss ordinal 4 of the map this game actually loaded (next run: Duskwood, not Elwynn).
+                    client.call_before(context, SPAWN_BOSS, game, native_map(client, game)[1] + 4 * 0x58,
+                                       after=completed)
                     return True
                 second = int(self.host_clock)
                 if (self.boss_guid in self.enemy_snapshot and second >= 30 and second != self.last_hit
