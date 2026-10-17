@@ -54,7 +54,9 @@ def package_files():
     files += tree('analysis', lambda p: p.parent == ROOT / 'analysis' and (
         p.suffix == '.py' or p.name in ('active-hooks.json', 'native-contract-baseline.json', 'UPDATE-COMPATIBILITY.md')))
     files += [ROOT / n for n in ('AzerothSurvivors.exe', 'Start-Coop.cmd', 'coop_launcher.py',  # no Start-Solo-Test.cmd (user decision)
-                                 'COOP-VERSION.txt')]
+                                 'coop_autoupdate.py', 'COOP-VERSION.txt',
+                                 # From 0.0.13 every package ships the updater (Start-Coop uses it directly).
+                                 'Azeroth-Survivors-Together-Updater.exe')]
     return sorted(files)
 
 
@@ -78,6 +80,9 @@ def main():
     log(' .... ', 'Vorbedingungen')
     if sha256(ROOT / 'AzerothSurvivors.exe') != GAME_SHA:
         log('FAILED', 'Vorbedingungen: AzerothSurvivors.exe ist nicht 7264d50b (0.95.0)')
+        return 1
+    if not (ROOT / 'Azeroth-Survivors-Together-Updater.exe').is_file():
+        log('FAILED', 'Vorbedingungen: Azeroth-Survivors-Together-Updater.exe (Updater 3, coop-updater.exe) fehlt im Build-Ordner')
         return 1
     if not SEVEN_ZIP.is_file():
         log('FAILED', f'Vorbedingungen: {SEVEN_ZIP} fehlt')
@@ -105,7 +110,8 @@ def main():
     with ThreadPoolExecutor(workers) as pool:
         digests = list(pool.map(sha256, staged))
     manifest = {p.relative_to(stage).as_posix(): d for p, d in zip(staged, digests)}
-    (stage / 'package-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+    # The same bytes the updater writes after an update (indent 1, sorted, text mode).
+    (stage / 'package-manifest.json').write_text(json.dumps(manifest, indent=1, sort_keys=True), encoding='utf-8')
     log('  OK  ', f'package-manifest.json erzeugen ({time.time() - t:.1f} s, {len(manifest)} Einträge, '
                   f'{total / 2**20 / max(time.time() - t, 0.01):.0f} MiB/s)')
 

@@ -29,7 +29,7 @@ if GAMEFILES:
     ARGS.remove('--gamefiles')
 RELEASE, STAGING, WORK = Path(ARGS[0]), Path(ARGS[1]), Path(ARGS[2])
 OLD = dict(arg.split('=', 1) for arg in ARGS[3:])
-SKIP = ('coop-update', 'Azeroth-Survivors-Together-Updater.exe')
+SKIP = ('coop-update',)  # The updater exe is a package file from 0.0.13; its .old waits for the next start.
 
 
 def log(tag, text):
@@ -40,7 +40,7 @@ def tree(root):
     result = {}
     for path in root.rglob('*'):
         rel = path.relative_to(root).as_posix()
-        if path.is_file() and not rel.startswith(SKIP):
+        if path.is_file() and not rel.startswith(SKIP) and not rel.endswith('.exe.old'):
             result[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
     return result
 
@@ -90,10 +90,10 @@ def main():
         started = time.time()
         log(' .... ', f'{name}: Kopie von {old}')
         linked = copy(Path(old), target)
-        before = tree(target)
-        log('  OK  ', f'{name}: Kopie ({time.time() - started:.1f} s, {len(before)} Dateien, {linked} Spieldateien verlinkt)')
         shutil.copy2(Path(player_exe) if player_exe else RELEASE / 'Azeroth-Survivors-Together-Updater.exe',
                      target / 'Azeroth-Survivors-Together-Updater.exe')
+        before = tree(target)  # With the player's exe: from 0.0.13 it is a package file and compared too.
+        log('  OK  ', f'{name}: Kopie ({time.time() - started:.1f} s, {len(before)} Dateien, {linked} Spieldateien verlinkt)')
         started = time.time()
         log(' .... ', f'{name}: Updater-exe wie ein Spieler starten')
         run = subprocess.run([str(target / 'Azeroth-Survivors-Together-Updater.exe'), '--no-pause', '--release-url', url,

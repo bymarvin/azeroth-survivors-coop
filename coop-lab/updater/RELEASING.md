@@ -108,3 +108,41 @@ sichert die SHA-256 in der signierten Datei.
    sich den neuen Schlüssel.
 3. Danach mit dem neuen Schlüssel signieren und ihn in `TRUSTED_KEYS` aufnehmen. Später kann ein Release mit
    `--retire-key <alt>` den alten Schlüssel ausmustern.
+
+## Automatisches Update in Start-Coop.cmd (ab 0.0.13)
+- `Start-Coop.cmd` führt vor dem Launcher `coop_autoupdate.py` aus.
+  - Es fragt höchstens etwa 3 s lang nach einer signierten Version, über das gebundene `self_update.check`.
+  - Gibt es eine neuere: Meldung „Update X -> Y … (Enter = skip)“ und 5 s Countdown. Fehlt die Updater-exe oder ist
+    sie anders als die signierte, wird sie geholt. Exit 10.
+  - Danach, wenn Python beendet und die Runtime frei ist, startet `Start-Coop.cmd` die Updater-exe und immer
+    anschließend den Launcher.
+- Abschalten: `COOP_AUTO_UPDATE=0` oder die Datei `coop-update\no-auto-update`.
+- Alles nach dem Update steht in **einem** Block `( … exit /b )`. cmd liest ihn vorab komplett ein, deshalb darf ein
+  Update `Start-Coop.cmd` selbst ersetzen. Diesen Aufbau beibehalten.
+- `Start-Coop.cmd`, `coop_launcher.py`, `coop_autoupdate.py` und `COOP-VERSION.txt` gehören nicht zur
+  Quellidentität der Bindung. Änderungen daran brauchen keine neue Bindung.
+  - `make_package.py` nimmt `coop_autoupdate.py` mit.
+  - `make_package.py` schreibt `package-manifest.json` jetzt genau so, wie der Updater es schreibt (byte-gleich nach
+    Updates).
+- Probe: `coop-lab/updater/e2e_autostart.py --staging <0.0.12-Staging> --gamefiles <Ordner> --work <neuer Ordner>`.
+  - Läuft mit Testschlüssel und Test-Updater-exe, über einen lokalen Server.
+  - Prüft 0.0.12 → 0.0.13 per exe, dann über Start-Coop 0.0.13 → 0.0.14: mit exe, ohne exe, beschädigtes Release,
+    offline und abgeschaltet.
+  - Der Launcher läuft dabei nur mit `--help`.
+
+## Updater-exe im Paket (ab 0.0.13, Updater 3)
+- Jedes Paket enthält `Azeroth-Survivors-Together-Updater.exe` neben `Start-Coop.cmd`.
+  - `make_package.py` verlangt die exe im Build-Ordner und nimmt sie mit.
+  - In `mod-<ver>.zip` und im Manifest steht sie wie jede andere Mod-Datei.
+- Reihenfolge:
+  1. Updater bauen: `COOP_UPDATER_VERSION=3 cargo build --release --bin coop-updater`, ohne `COOP_UPDATER_TEST_KEY`.
+  2. Die exe als `Azeroth-Survivors-Together-Updater.exe` in den Build-Ordner legen.
+  3. `make_package`.
+  4. `make_release` mit **derselben** exe als `--updater-exe` und `--min-updater 3`. make_release prüft beides.
+- Ist die laufende exe selbst eine geänderte Datei, ersetzt Updater 3 sie nicht während des Laufs (sie ist von
+  Windows gesperrt):
+  - Nach erfolgreicher Installation liegt die neue exe als `.new` daneben, und der Lauf endet mit 3.
+  - Die exe tauscht sich selbst aus und läuft noch einmal; dann ist nichts mehr zu tun.
+  - Ältere exes (1/2) holen sich wegen `min_updater 3` vorher Updater 3.
+- `coop_autoupdate.py` lädt die exe nur noch, wenn sie im Ordner fehlt (Rückfall). Eine vorhandene exe aktualisiert
+  sich selbst.

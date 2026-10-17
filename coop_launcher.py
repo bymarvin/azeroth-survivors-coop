@@ -1,6 +1,7 @@
 """Start the room browser using the public directory by default."""
 from base64 import b64decode
 import argparse
+import os
 from pathlib import Path
 import subprocess
 import socket
@@ -10,6 +11,8 @@ import threading
 
 def check_for_update(root, wait=3.0):
     """Ask GitHub for a newer signed release; offline or slow: start as usual, say nothing."""
+    if os.environ.get('COOP_UPDATE_CHECKED') == '1':
+        return  # Start-Coop.cmd already asked (coop_autoupdate.py) a moment ago.
     def ask():
         try:
             sys.path.insert(0, str(root / 'reconstruction'))

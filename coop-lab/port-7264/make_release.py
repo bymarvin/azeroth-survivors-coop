@@ -133,7 +133,14 @@ def main():
     if wrong:
         log('FAILED', f'Paket lesen: {wrong[0]} passt nicht zum Paketmanifest')
         return 1
-    log('  OK  ', f'Paket lesen ({time.time() - t:.1f} s, co-op {version}, {len(target)} Dateien)')
+    shipped = target.get(self_update.UPDATER_ASSET)
+    if shipped and (shipped != sha256(args.updater_exe) or args.min_updater < 3):
+        # The package ships the updater: the release asset must be the same exe, and only updater 3+
+        # can replace its own running exe as part of an update.
+        log('FAILED', 'Paket lesen: die Updater-exe im Paket muss gleich --updater-exe sein und --min-updater >= 3')
+        return 1
+    log('  OK  ', f'Paket lesen ({time.time() - t:.1f} s, co-op {version}, {len(target)} Dateien'
+                  + (', mit Updater-exe' if shipped else '') + ')')
 
     t = time.time()
     log(' .... ', 'Quellen der Spieldateien prüfen')

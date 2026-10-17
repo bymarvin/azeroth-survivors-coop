@@ -11,6 +11,8 @@
 !analysis/*.json
 !analysis/*.md
 !coop_launcher.py
+!coop_autoupdate.py
+!Start-Coop.cmd
 !COOP-VERSION.txt
 !package-manifest.json
 !coop-lab/

@@ -12,6 +12,11 @@ pinned by the binding and keeps the launcher check). This module extends it:
   before patching and the result against the target SHA; then the usual
   backup / install / verify / rollback of self_update runs.
 - Releases that use patches set min_updater 2, so updater 1 fetches this one first.
+- Version 3: the package ships this updater exe (from 0.0.13). If the running
+  exe is one of the changed files, it is not replaced while it runs: after a
+  successful install the new one waits as <exe>.new and the run ends with 3;
+  the exe swaps itself and runs once more (nothing left to do). Releases that
+  ship the exe set min_updater 3.
 """
 import os
 import re
@@ -24,8 +29,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I leaves the script
 import self_update as su  # noqa: E402
 import game_patch  # noqa: E402
 
-UPDATER_VERSION = 2
+UPDATER_VERSION = 3
 su.UPDATER_VERSION = UPDATER_VERSION
+RUNNING = {}  # 'exe': the running updater exe, 'pending': its new version staged during this run
 _validate_files, _fetch_files = su.validate_files, su.fetch_files
 GAMEFILES = {}  # The signed base address of the game file assets of this run.
 
@@ -129,6 +135,13 @@ def fetch_files(net, latest, files, needed, work):
         staged[p] = target
     rest = [p for p in needed if p not in plans]
     staged.update(_fetch_files(net, latest, files, rest, work) if rest else {})
+    running = RUNNING.get('exe')
+    if su.UPDATER_ASSET in staged and running is not None and running == (root / su.UPDATER_ASSET).resolve():
+        # A running exe cannot be replaced (install would refuse it as locked): it follows after the install.
+        pending = work.parent / (su.UPDATER_ASSET + '.pending')
+        shutil.copyfile(staged.pop(su.UPDATER_ASSET), pending)
+        RUNNING['pending'] = pending
+        su.log(' INFO ', f'{su.UPDATER_ASSET} is running: its new version is put in place after this update')
     return staged
 
 
@@ -145,7 +158,23 @@ def main(argv=None, builtin=su.TRUSTED_KEYS):
     override = extra.gamefiles_url or os.environ.get('COOP_GAMEFILES_URL')
     if override:
         GAMEFILES['override'] = override
-    return su.main(rest, builtin)
+    RUNNING.clear()
+    exe = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    exe.add_argument('--updater-exe')
+    running = exe.parse_known_args(rest)[0].updater_exe
+    if running:
+        RUNNING['exe'] = Path(running).resolve()
+    try:
+        code = su.main(rest, builtin)
+        if RUNNING.get('pending') is not None and code == 0:
+            os.replace(RUNNING.pop('pending'), RUNNING['exe'].with_name(RUNNING['exe'].name + '.new'))
+            su.log(' INFO ', 'Restarting with the new updater to finish (it replaces itself now)')
+            return su.SELF_UPDATE_READY
+        return code
+    finally:
+        leftover = RUNNING.pop('pending', None)
+        if leftover is not None:
+            leftover.unlink(missing_ok=True)  # Install failed: the running exe stays as it is.
 
 
 if __name__ == '__main__':

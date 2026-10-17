@@ -774,6 +774,88 @@ def main():
         return 'tampered asset refused, cut download continued, broken patch or wrong source never matches the target'
     test('Game file patches: damage, wrong source, interrupted download', game_patch_damage)
 
+    def auto_update_check():
+        """Start-Coop.cmd step: coop_autoupdate decides (0 = launcher, 10 = run the updater exe first)."""
+        sys.path.insert(0, str(ROOT))
+        import coop_autoupdate as auto
+        lab = Lab(args.work, 'auto')
+        try:
+            argv = ['--game', str(lab.game), '--release-url', lab.github.url, '--allow-local-http', '--countdown', '0']
+            keys = tuple(lab.pub[k] for k in ('key-1',))
+            with mock.patch.dict(os.environ, COOP_AUTO_UPDATE='0'):
+                assert auto.main(argv, keys) == 0
+            (lab.game / 'coop-update').mkdir(exist_ok=True)
+            (lab.game / auto.OFF_FILE).write_text('')
+            assert auto.main(argv, keys) == 0
+            (lab.game / auto.OFF_FILE).unlink()
+            exe = lab.game / self_update.UPDATER_ASSET
+            with mock.patch.object(auto, 'enter_pressed', lambda: True):
+                assert auto.main(argv[:-1] + ['1'], keys) == 0  # Enter during the countdown: skipped.
+            assert not exe.exists(), 'downloaded although skipped'
+            before = lab.snapshot()
+            assert auto.main(argv, keys) == auto.INSTALL
+            assert exe.read_bytes() == b'updater exe v2', 'signed updater not downloaded'
+            assert {k: v for k, v in lab.snapshot().items() if k != exe.name} == before, 'auto check changed the folder'
+            assert auto.main(argv, keys) == auto.INSTALL and exe.read_bytes() == b'updater exe v2'  # Present: kept.
+            assert lab.run() == 0
+            assert auto.main(argv, keys) == 0  # Current now.
+            assert auto.main(argv, (lab.pub['other'],)) == 0  # Untrusted release: start as usual.
+            url = lab.github.url
+        finally:
+            lab.close()
+        started = time.time()
+        assert auto.main(['--game', str(lab.game), '--release-url', url, '--allow-local-http', '--countdown', '0'],
+                         keys) == 0  # Offline.
+        assert time.time() - started < 3.5, time.time() - started
+        return 'off (variable/file), skip, update -> signed exe downloaded and exit 10, current, untrusted, offline < 3.5 s'
+    test('Start-Coop auto update check', auto_update_check)
+
+    def shipped_updater():
+        """From 0.0.13 the package ships the updater exe: the running one is replaced after the install."""
+        import ctypes
+        from ctypes import wintypes
+        assert not any(self_update.user_area(p) for p in ('Start-Coop.cmd', 'coop_autoupdate.py', 'coop_launcher.py',
+                                                          self_update.UPDATER_ASSET)), 'shipped files are user data'
+        v1, v2 = packages()
+        v1[self_update.UPDATER_ASSET] = b'updater exe 0.0.12'
+        v2[self_update.UPDATER_ASSET] = b'updater exe 0.0.13'
+        lab = Lab(args.work, 'shipped', version_files=(v1, v2), min_updater=3, updater=b'updater exe 0.0.13')
+        try:
+            exe = lab.game / self_update.UPDATER_ASSET
+            kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+            kernel.CreateFileW.restype = wintypes.HANDLE
+            kernel.CreateFileW.argtypes = (wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p,
+                                           wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE)
+            # Like a running exe: readable, but nobody may open it for writing.
+            handle = kernel.CreateFileW(str(exe), 0x80000000, 0x1, None, 3, 0, None)
+            assert handle not in (None, wintypes.HANDLE(-1).value), ctypes.get_last_error()
+            try:
+                assert not self_update.writable(exe)
+                assert lab.run(updater_version=3, exe=exe) == self_update.SELF_UPDATE_READY
+            finally:
+                kernel.CloseHandle(handle)
+            assert exe.read_bytes() == b'updater exe 0.0.12', 'running exe was touched'
+            assert exe.with_name(exe.name + '.new').read_bytes() == b'updater exe 0.0.13'
+            assert not list(lab.game.glob('coop-update/*.pending')), 'pending copy left'
+            lab.is_version({p: d for p, d in v2.items() if p != self_update.UPDATER_ASSET})
+            manifest = json.loads((lab.game / 'package-manifest.json').read_text())
+            assert manifest[self_update.UPDATER_ASSET] == hashlib.sha256(b'updater exe 0.0.13').hexdigest()
+            # What the exe does on exit 3: swap and run once more -> nothing left to do.
+            os.replace(exe.with_name(exe.name + '.new'), exe)
+            assert lab.run(updater_version=3, exe=exe) == 0
+            lab.is_version(v2)
+        finally:
+            lab.close()
+        lab = Lab(args.work, 'shipped-direct', version_files=(v1, v2), min_updater=3, updater=b'updater exe 0.0.13')
+        try:
+            assert lab.run(updater_version=3) == 0  # Python run without the exe: replaced like any file.
+            lab.is_version(v2)
+            refused(lab, self_update.Refused, 'needs updater 3', updater_version=2)  # v2 must fetch v3 first.
+        finally:
+            lab.close()
+        return 'locked running exe: install + exe as .new + exit 3, then nothing left; without exe: normal; v2 -> needs v3'
+    test('Shipped updater exe replaces itself after the install', shipped_updater)
+
     if not args.skip_exe:
         def exe_self_update():
             """Real exes: v1 finds a release that needs updater 2, swaps itself and installs."""
