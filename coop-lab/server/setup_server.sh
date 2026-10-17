@@ -2,6 +2,8 @@
 # Download server for Azeroth Survivors Together updates (Debian 13, boot-log format, idempotent).
 #
 #   ssh -i <admin key> <admin>@<server> "sudo bash -s -- '<upload public key>'" < setup_server.sh
+#   ssh -i <admin key> <admin>@<server> "sudo DOMAIN=azsurvivors-oce.duckdns.org MIRROR=0 bash -s" < setup_server.sh
+#     (MIRROR=0: no download mirror and no upload user, the site only answers /healthz)
 #
 # - caddy (Debian package): https://azsurvivors.duckdns.org serves /srv/azsurvivors/files
 #   (GET/HEAD only, Range, no directory listing, latest.json/.sig cached 60 s, the rest 1 h).
@@ -11,7 +13,8 @@
 # Touches nothing else on the server (other services keep running as they are).
 set -euo pipefail
 
-DOMAIN=azsurvivors.duckdns.org
+DOMAIN=${DOMAIN:-azsurvivors.duckdns.org}
+MIRROR=${MIRROR:-1}
 BASE=/srv/azsurvivors
 FILES=$BASE/files
 USER_NAME=azdeploy
@@ -26,7 +29,7 @@ fail() { echo "[FAILED] $STEP: $1"; exit 1; }
 trap 'echo "[FAILED] ${STEP:-setup}: command failed (line $LINENO)"' ERR
 
 [ "$(id -u)" = 0 ] || { echo "[FAILED] run with sudo"; exit 1; }
-[[ "$UPLOAD_KEY" == ssh-ed25519\ * ]] || { echo "[FAILED] upload public key (ssh-ed25519 ...) as first argument"; exit 1; }
+[ "$MIRROR" = 0 ] || [[ "$UPLOAD_KEY" == ssh-ed25519\ * ]] || { echo "[FAILED] upload public key (ssh-ed25519 ...) as first argument"; exit 1; }
 command -v bc >/dev/null || { DEBIAN_FRONTEND=noninteractive apt-get install -y -q bc >/dev/null; }
 
 step "Pakete (caddy)"
@@ -38,6 +41,7 @@ else
     ok "caddy $(dpkg-query -W -f '${Version}' caddy) installiert"
 fi
 
+if [ "$MIRROR" != 0 ]; then
 step "Upload-Nutzer $USER_NAME"
 if ! id "$USER_NAME" >/dev/null 2>&1; then
     useradd --system --no-create-home --home-dir "$BASE" --shell /usr/sbin/nologin "$USER_NAME"
@@ -80,9 +84,24 @@ deploy=$(sshd -T -C user=$USER_NAME,host=x,addr=127.0.0.1 | grep -E '^(chrootdir
 [[ "$deploy" == *"chrootdirectory $BASE"* ]] || fail "the block does not apply to $USER_NAME: $deploy"
 systemctl reload ssh
 ok "andere Nutzer: ${admin}; $USER_NAME: ${deploy}"
+fi
 
-step "Caddy: $DOMAIN -> $FILES"
+step "Caddy: $DOMAIN -> $([ "$MIRROR" = 0 ] && echo /healthz || echo "$FILES")"
 cp -n /etc/caddy/Caddyfile /etc/caddy/Caddyfile.debian-default 2>/dev/null || true
+if [ "$MIRROR" = 0 ]; then
+cat > /etc/caddy/Caddyfile.new <<EOF
+# Azeroth Survivors Together region server without download mirror (setup_server.sh MIRROR=0).
+$DOMAIN {
+	respond /healthz "ok" 200
+	respond 404
+	header -Server
+	header X-Content-Type-Options nosniff
+}
+
+# Further sites (e.g. the lobby relay) drop their own file here; this script never touches them.
+import /etc/caddy/sites.d/*.caddy
+EOF
+else
 cat > /etc/caddy/Caddyfile.new <<EOF
 # Azeroth Survivors Together update downloads (setup_server.sh). HTTPS certificates: automatic.
 $DOMAIN {
@@ -101,6 +120,7 @@ $DOMAIN {
 # Further sites (e.g. the US lobby relay) drop their own file here; this script never touches them.
 import /etc/caddy/sites.d/*.caddy
 EOF
+fi
 mkdir -p /etc/caddy/sites.d
 caddy validate --adapter caddyfile --config /etc/caddy/Caddyfile.new >/dev/null 2>&1 || fail "caddy validate refused the config"
 mv /etc/caddy/Caddyfile.new /etc/caddy/Caddyfile
@@ -119,5 +139,6 @@ systemctl enable --now unattended-upgrades >/dev/null 2>&1
 ok "$(systemctl is-active unattended-upgrades), $(grep -c '"1"' /etc/apt/apt.conf.d/20auto-upgrades)/2 Periodic aktiv"
 
 step "Platz"
-ok "$(df -h / | awk 'NR==2 {print $4 " frei von " $2}'), $FILES: $(du -sh "$FILES" | cut -f1)"
-echo "[ INFO ] Zusammenfassung: Server bereit (https://$DOMAIN/, Upload per sftp als $USER_NAME nach /files)"
+ok "$(df -h / | awk 'NR==2 {print $4 " frei von " $2}')$([ "$MIRROR" = 0 ] || echo ", $FILES: $(du -sh "$FILES" | cut -f1)")"
+if [ "$MIRROR" = 0 ]; then echo "[ INFO ] Zusammenfassung: Server bereit (https://$DOMAIN/healthz, ohne Download-Spiegel)"
+else echo "[ INFO ] Zusammenfassung: Server bereit (https://$DOMAIN/, Upload per sftp als $USER_NAME nach /files)"; fi

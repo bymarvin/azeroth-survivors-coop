@@ -1,5 +1,6 @@
 #!/bin/bash
-# US room directory (lobby) and relay for Azeroth Survivors Together (Debian 13, boot-log format, idempotent).
+# Regional room directory (lobby) and relay for Azeroth Survivors Together (Debian 13, boot-log format, idempotent).
+# US is the default; another region: sudo DOMAIN=lobby.azsurvivors-oce.duckdns.org REGION=OCE bash -s
 #
 #   scp lobby_server.py lobby.py crash_reports.py server.py SHA256SUMS <admin>@<server>:/tmp/azsurvivors-lobby-src/
 #   ssh <admin>@<server> "sudo bash -s" < setup_lobby_relay.sh
@@ -19,7 +20,8 @@
 # The GCP firewall must allow TCP 47771 (done by the owner, not by this script).
 set -euo pipefail
 
-DOMAIN=lobby.azsurvivors.duckdns.org
+DOMAIN=${DOMAIN:-lobby.azsurvivors.duckdns.org}
+REGION=${REGION:-US}
 SRC=${1:-/tmp/azsurvivors-lobby-src}
 CODE=/opt/azsurvivors-coop
 STATE=/var/lib/azsurvivors-lobby
@@ -61,7 +63,7 @@ ok "$(cd "$CODE" && find . -name '*.py' | wc -l) Python-Dateien"
 step "Crash-Berichte: Ablage und Rotation"
 install -d -o azlobby -g azlobby -m 750 "$STATE" "$STATE/collected-logs"
 cat > /etc/tmpfiles.d/azsurvivors-lobby.conf <<EOF
-# Crash and completion reports of the US lobby: deleted after 30 days (the lobby caps 1024 files / 256 MiB).
+# Crash and completion reports of the $REGION lobby: deleted after 30 days (the lobby caps 1024 files / 256 MiB).
 d $STATE/collected-logs 0750 azlobby azlobby 30d
 EOF
 systemd-tmpfiles --create /etc/tmpfiles.d/azsurvivors-lobby.conf
@@ -80,7 +82,7 @@ ok "150 MB, 14 Tage"
 step "Dienst azsurvivors-lobby"
 cat > /etc/systemd/system/azsurvivors-lobby.service <<EOF
 [Unit]
-Description=Azeroth Survivors Together US room directory (lobby_server.py, behind Caddy)
+Description=Azeroth Survivors Together $REGION room directory (lobby_server.py, behind Caddy)
 After=network-online.target
 Wants=network-online.target
 
@@ -167,7 +169,7 @@ ok
 step "Dienst azsurvivors-relay"
 cat > /etc/systemd/system/azsurvivors-relay.service <<EOF
 [Unit]
-Description=Azeroth Survivors Together US relay (relay/server.py, TCP 47771)
+Description=Azeroth Survivors Together $REGION relay (relay/server.py, TCP 47771)
 After=network-online.target azsurvivors-lobby.service
 Wants=network-online.target azsurvivors-lobby.service
 ConditionPathExists=$TLS/fullchain.pem
@@ -204,7 +206,7 @@ ok
 step "Caddy: eigene Site $DOMAIN"
 install -d -o root -g root -m 755 /etc/caddy/sites.d
 cat > "$CADDY_SITE.new" <<EOF
-# US room directory for Azeroth Survivors Together (setup_lobby_relay.sh). HTTPS certificate: automatic.
+# $REGION room directory for Azeroth Survivors Together (setup_lobby_relay.sh). HTTPS certificate: automatic.
 # No access log: requests carry room memberships (Bearer) and invitations.
 $DOMAIN {
 	request_body {

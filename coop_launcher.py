@@ -1,4 +1,4 @@
-"""Start the room browser with the EU or US room directory (asked at start, remembered)."""
+"""Start the room browser with the EU, US or OCE room directory (asked at start, remembered)."""
 from base64 import b64decode
 import argparse
 import os
@@ -11,9 +11,11 @@ import time
 from urllib.parse import urlsplit
 
 # Obfuscation only: the destination remains discoverable at runtime.
+# Order = menu numbers [1], [2], [3]; the first letter of each key also selects it.
 REGIONS = {
     'eu': ('EU', b64decode('aHR0cHM6Ly9kYXNoMjgxMi5kZQ==').decode('ascii')),
     'us': ('US', 'https://lobby.azsurvivors.duckdns.org'),
+    'oce': ('OCE', 'https://lobby.azsurvivors-oce.duckdns.org'),
 }
 REGION_FILE = 'coop-region.txt'  # Last choice; not part of any release, so updates keep it.
 CHOICE_SECONDS = 5
@@ -43,7 +45,7 @@ def check_for_update(root, wait=3.0):
 
 
 def region_of(value):
-    """'eu'/'us' (any case) for a region name, None otherwise."""
+    """'eu'/'us'/'oce' (any case) for a region name, None otherwise."""
     value = (value or '').strip().lower()
     return value if value in REGIONS else None
 
@@ -74,7 +76,7 @@ def latency_ms(url, timeout=1.5):
 
 
 def latencies(timeout=1.5):
-    """Both regions measured in parallel (at most `timeout` seconds in total)."""
+    """All regions measured in parallel (at most `timeout` seconds in total)."""
     results = {}
     def measure(key):
         results[key] = latency_ms(REGIONS[key][1], timeout)
@@ -94,17 +96,21 @@ def console_key():
 
 def choose_region(default, read_key, *, measured=None, seconds=CHOICE_SECONDS, now=time.monotonic,
                   sleep=time.sleep, write=print):
-    """Ask EU or US; Enter or no key within `seconds` keeps `default`. Returns (region, how)."""
+    """Ask for a region; Enter or no key within `seconds` keeps `default`. Returns (region, how)."""
     measured = measured or {}
+    order = list(REGIONS)
+    shortcuts = {str(number): key for number, key in enumerate(order, 1)}
+    shortcuts.update({key[0]: key for key in order})
     def label(key):
         name, url = REGIONS[key]
         ms = measured.get(key)
         speed = f'{ms} ms' if ms is not None else ('not reachable' if key in measured else '')
-        return f'  [{1 if key == "eu" else 2}] {name}  {urlsplit(url).hostname:<30} {speed}'
+        return f'  [{order.index(key) + 1}] {name:<3}  {urlsplit(url).hostname:<34} {speed}'
+    numbers = ', '.join(str(n) for n in range(1, len(order))) + f' or {len(order)}'
     write('Co-op region (room list and relay):')
     for key in REGIONS:
         write(label(key) + ('   <- last choice' if key == default else ''))
-    write(f'Press 1 or 2, Enter = {REGIONS[default][0]} (starts automatically in {seconds} s).')
+    write(f'Press {numbers}, Enter = {REGIONS[default][0]} (starts automatically in {seconds} s).')
     deadline = now() + seconds
     while True:
         key = read_key()
@@ -116,11 +122,9 @@ def choose_region(default, read_key, *, measured=None, seconds=CHOICE_SECONDS, n
         key = key.lower()
         if key in ('\r', '\n'):
             return default, 'enter'
-        if key in ('1', 'e'):
-            return 'eu', 'key'
-        if key in ('2', 'u'):
-            return 'us', 'key'
-        write('[ WARN ] Press 1 (EU), 2 (US) or Enter.')
+        if key in shortcuts:
+            return shortcuts[key], 'key'
+        write('[ WARN ] Press ' + ', '.join(f'{n} ({REGIONS[k][0]})' for n, k in enumerate(order, 1)) + ' or Enter.')
 
 
 def resolve_directory(argument, region_option, root, *, interactive, read_key=console_key, measure=latencies,
@@ -147,7 +151,7 @@ def resolve_directory(argument, region_option, root, *, interactive, read_key=co
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('directory', nargs='?', help='eu, us or a room directory URL (skips the region question)')
+    parser.add_argument('directory', nargs='?', help='eu, us, oce or a room directory URL (skips the region question)')
     parser.add_argument('--region', choices=sorted(REGIONS), help='Use this region without asking')
     parser.add_argument('--profile', type=Path, help='Independent launcher settings/log folder')
     parser.add_argument('--isolated-profile', action='store_true', help='Use a disposable native save for another local client')
@@ -169,7 +173,7 @@ if __name__ == '__main__':
     directory, region, how = resolve_directory(args.directory, args.region, root, interactive=interactive)
     if region:
         print(f'[  OK  ] Region {REGIONS[region][0]} ({urlsplit(directory).hostname}, {how}). '
-              f'Change it next time with 1/2 at start, or start with "Start-Coop.cmd eu|us".', flush=True)
+              f'Change it next time with 1/2/3 at start, or start with "Start-Coop.cmd eu|us|oce".', flush=True)
     raise SystemExit(subprocess.call([
         sys.executable, str(Path(__file__).parent / 'reconstruction' / 'room_client.py'),
         '--directory', directory, '--port', str(ui_port), '--open-browser',

@@ -1,6 +1,6 @@
 """Region choice at co-op start (coop_launcher.py), boot-log format.
 
-Unit checks of the question (EU/US, remembered, Enter, timeout, invalid keys, arguments,
+Unit checks of the question (EU/US/OCE, remembered, Enter, timeout, invalid keys, arguments,
 COOP_REGION, explicit URL, no console) and a real "cmd /c Start-Coop.cmd" run in a
 temporary folder whose room browser is a stub that only records the directory URL.
 
@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 import coop_launcher as launcher  # noqa: E402
 
-EU, US = launcher.REGIONS['eu'][1], launcher.REGIONS['us'][1]
+EU, US, OCE = launcher.REGIONS['eu'][1], launcher.REGIONS['us'][1], launcher.REGIONS['oce'][1]
 
 
 class Clock:
@@ -42,7 +42,7 @@ def keys(*sequence):
 class ChoiceTests(unittest.TestCase):
     def choose(self, default, *pressed, seconds=5):
         clock, lines = Clock(), []
-        result = launcher.choose_region(default, keys(*pressed), measured=dict(eu=31, us=None), seconds=seconds,
+        result = launcher.choose_region(default, keys(*pressed), measured=dict(eu=31, us=None, oce=288), seconds=seconds,
                                         now=clock.now, sleep=clock.sleep, write=lines.append)
         return result, clock.t, lines
 
@@ -50,6 +50,18 @@ class ChoiceTests(unittest.TestCase):
         self.assertEqual(self.choose('eu', '2')[0], ('us', 'key'))
         self.assertEqual(self.choose('us', '1')[0], ('eu', 'key'))
         self.assertEqual(self.choose('eu', 'U')[0], ('us', 'key'))
+
+    def test_oce_is_the_third_choice_with_its_latency(self):
+        self.assertEqual(self.choose('eu', '3')[0], ('oce', 'key'))
+        self.assertEqual(self.choose('us', 'O')[0], ('oce', 'key'))
+        (region, how), _, lines = self.choose('oce', '\r')
+        self.assertEqual((region, how), ('oce', 'enter'))
+        line = next(l for l in lines if '[3]' in l)
+        self.assertIn('OCE', line)
+        self.assertIn('azsurvivors-oce.duckdns.org', line)
+        self.assertIn('288 ms', line)
+        self.assertIn('<- last choice', line)
+        self.assertTrue(any('Press 1, 2 or 3' in l for l in lines), lines)
 
     def test_enter_and_timeout_keep_the_last_choice(self):
         self.assertEqual(self.choose('us', '\r')[0], ('us', 'enter'))
@@ -64,6 +76,7 @@ class ChoiceTests(unittest.TestCase):
         (region, how), _, lines = self.choose('eu', 'x', None, '7', '2')
         self.assertEqual((region, how), ('us', 'key'))
         self.assertEqual(sum('[ WARN ]' in l for l in lines), 2)
+        self.assertTrue(all('3 (OCE)' in l for l in lines if '[ WARN ]' in l), lines)
         (region, how), waited, _ = self.choose('eu', 'x')  # Invalid, then nothing: still times out.
         self.assertEqual((region, how, round(waited)), ('eu', 'timeout', 5))
 
@@ -97,6 +110,25 @@ class ResolveTests(unittest.TestCase):
         self.assertEqual(self.resolve(None, 'us', True), ((US, 'us', 'argument'), False))
         self.assertEqual(self.resolve(None, None, True, dict(COOP_REGION='eu')), ((EU, 'eu', 'argument'), False))
         self.assertEqual((self.folder / launcher.REGION_FILE).read_text().strip(), 'eu')
+        self.assertEqual(self.resolve('OCE', None, True), ((OCE, 'oce', 'argument'), False))
+        self.assertEqual(self.resolve(None, 'oce', True), ((OCE, 'oce', 'argument'), False))
+        self.assertEqual(self.resolve(None, None, True, dict(COOP_REGION='oce')), ((OCE, 'oce', 'argument'), False))
+        self.assertEqual(self.resolve(), ((OCE, 'oce', 'remembered'), False))
+        self.assertEqual(self.resolve(None, None, True, None, '3'), ((OCE, 'oce', 'key'), True))
+
+    def test_all_regions_are_measured_in_parallel(self):
+        calls = []
+        original = launcher.latency_ms
+        launcher.latency_ms = lambda url, timeout: (calls.append(url), time.sleep(.3))[1] or 1
+        try:
+            started = time.monotonic()
+            result = launcher.latencies(timeout=1)
+            elapsed = time.monotonic() - started
+        finally:
+            launcher.latency_ms = original
+        self.assertEqual(sorted(result), ['eu', 'oce', 'us'])
+        self.assertEqual(sorted(calls), sorted(url for _, url in launcher.REGIONS.values()))
+        self.assertLess(elapsed, .8)  # Three 0.3 s measurements ran together.
 
     def test_explicit_url_is_used_as_is_and_not_remembered(self):
         (self.folder / launcher.REGION_FILE).write_text('us\n')
@@ -150,6 +182,11 @@ class StartCoopTests(unittest.TestCase):
         self.assertEqual(url, US, done.stdout[-600:])
         done, url = self.start()
         self.assertEqual(url, US)  # Remembered, no console: no question, no waiting.
+        done, url = self.start('oce')
+        self.assertEqual(url, OCE, done.stdout[-600:])
+        self.assertIn('[  OK  ] Region OCE', done.stdout)
+        done, url = self.start()
+        self.assertEqual(url, OCE)  # Remembered.
         done, url = self.start('--region', 'eu')
         self.assertEqual(url, EU)
         done, url = self.start('http://127.0.0.1:47770')
