@@ -7,11 +7,14 @@ Everything is signed with a throwaway test key (never the release key): a test
 build of the installer and of updater exe 4 trust it. Two packages A and B
 (B = A with another version and launcher) with full game file assets for fresh
 installs (patch.MPQ raw), two signed game file sources (the first one missing).
-Cases: fresh install (runtime half downloaded before: it continues), the same
-folder again with release B (update mode through the installed updater exe),
-a damaged runtime archive (nothing installed), a foreign signature, and the
-production installer accepting the real release key (--real-release).
-No shortcuts are created (--no-shortcuts): nothing touches the desktop or Start menu.
+Cases: the folder choice without --dir (next to the exe / the exe's own folder),
+a fresh install next to the exe in a Downloads-like folder (runtime half
+downloaded before: it continues; shortcuts into a test folder), the installer
+copied into that game folder with release B (update mode through the installed
+updater exe, no new shortcuts), no write access (Program Files), too little
+space, a damaged runtime archive (nothing installed), a foreign signature, and
+the production installer accepting the real release key (--real-release).
+Shortcuts only go to <work>/shortcuts: nothing touches the real desktop or Start menu.
 """
 import argparse
 import hashlib
@@ -40,10 +43,20 @@ def log(tag, text):
     print(f'[{tag:^6}] {text}', flush=True)
 
 
+INSTALLER = 'Azeroth-Survivors-Together-Installer.exe'
+
+
 def tree(root):
     return {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in root.rglob('*')
             if p.is_file() and not p.relative_to(root).as_posix().startswith(('coop-update', 'coop-update-'))
-            and '__pycache__' not in p.parts and not p.name.endswith('.exe.old')}
+            and '__pycache__' not in p.parts and not p.name.endswith('.exe.old') and p.name != INSTALLER}
+
+
+def shortcut_target(link):
+    run = subprocess.run(['powershell', '-NoProfile', '-NonInteractive', '-Command',
+                          f"(New-Object -ComObject WScript.Shell).CreateShortcut('{link}').TargetPath"],
+                         capture_output=True, text=True)
+    return run.stdout.strip()
 
 
 def copy(source, target):
@@ -197,9 +210,35 @@ def main():
     runtime_asset = latest['archives']['runtime']['asset']
 
     def install(exe, folder, *extra, url=None):
-        return subprocess.run([str(exe), '--dir', str(folder), '--yes', '--no-shortcuts', '--no-pause',
+        dir_args = ['--dir', str(folder)] if folder else []
+        return subprocess.run([str(exe), *dir_args, '--no-shortcuts', '--no-pause', '--no-open',
                                '--release-url', url or release_url, '--allow-local-http', *extra],
                               capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=1800)
+
+    def placed(folder):
+        """The test installer copied into a folder, started there without --dir (like a double-click)."""
+        folder.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(installer, folder / INSTALLER)
+        return folder / INSTALLER
+
+    def chosen(run):
+        line = next((l for l in run.stdout.splitlines() if '] Folder ' in l), '')
+        return line.split('] Folder ', 1)[1].rsplit(' (', 1)[0] if line else None
+
+    def choice():
+        downloads, named, alone = work / 'Downloads x', work / 'Azeroth Survivors Together', work / 'empty one'
+        downloads.mkdir()
+        (downloads / 'other download.zip').write_bytes(b'x')
+        want = {downloads: downloads / 'Azeroth Survivors Together', named: named, alone: alone}
+        for folder, target in want.items():
+            exe = placed(folder)
+            run = install(exe, None, '--needed-space', str(10 ** 18))  # Stops right after the folder choice.
+            if chosen(run) != str(target) or 'Nothing was installed' not in run.stdout or tree(target):
+                raise AssertionError(f'{folder.name}: chose {chosen(run)!r}, wanted {target}: {run.stdout[-500:]}')
+            (folder / INSTALLER).unlink()
+        shutil.rmtree(downloads / 'Azeroth Survivors Together')
+        return 'Downloads-like folder -> subfolder "Azeroth Survivors Together"; folder of that name / empty folder -> itself'
+    case('Folder choice without questions', choice)
 
     def same(folder, stage):
         got, want = tree(folder), tree(stage)
@@ -208,7 +247,14 @@ def main():
         if differ or extra:
             raise AssertionError(f'differs from {stage.name}: {differ[:5]} extra {extra[:5]}')
 
-    folder = work / 'installed'
+    downloads = work / 'Downloads x'
+    folder = downloads / 'Azeroth Survivors Together'
+    links = work / 'shortcuts'
+
+    def started_here(exe):
+        return subprocess.run([str(exe), '--no-pause', '--no-open', '--shortcut-folder', str(links),
+                               '--release-url', release_url, '--allow-local-http'],
+                              capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=1800)
 
     def fresh():
         release.root = work / 'release-a'
@@ -216,25 +262,57 @@ def main():
         partial_dir.mkdir(parents=True)
         data = (work / 'release-a' / runtime_asset).read_bytes()
         (partial_dir / runtime_asset).write_bytes(data[:len(data) // 2])  # An interrupted earlier attempt.
+        for sub in ('Desktop', 'Programs'):
+            (links / sub).mkdir(parents=True, exist_ok=True)
         started = time.time()
-        run = install(installer, folder)
+        run = started_here(placed(downloads))
         if run.returncode:
             raise AssertionError(run.stdout[-1200:])
         same(folder, stage_a)
-        if 'SHA-256 matches the release' not in run.stdout:
+        if 'SHA-256 matches the release' not in run.stdout or 'Done - start Start-Coop.cmd' not in run.stdout:
             raise AssertionError(run.stdout[-600:])
-        return (f'byte-equal to package A ({len(tree(folder))} files, {sum(f.stat().st_size for f in folder.rglob("*") if f.is_file()) / 2**30:.2f} GiB) '
-                f'in {time.time() - started:.0f} s; runtime continued from 50 %, first game file source 404 -> second')
-    case('Fresh install into an empty folder', fresh)
+        loose = sorted(p.name for p in downloads.iterdir())
+        if loose != sorted([INSTALLER, 'Azeroth Survivors Together', 'other download.zip']):
+            raise AssertionError(f'loose files next to the installer: {loose}')
+        for sub in ('Desktop', 'Programs'):
+            target = shortcut_target(links / sub / 'Azeroth Survivors Together.lnk')
+            if target.lower() != str(folder / 'Start-Coop.cmd').lower():
+                raise AssertionError(f'{sub} shortcut points to {target!r}')
+        return (f'next to the exe in "Azeroth Survivors Together", byte-equal to package A ({len(tree(folder))} files, '
+                f'{sum(f.stat().st_size for f in folder.rglob("*") if f.is_file()) / 2**30:.2f} GiB) in {time.time() - started:.0f} s; '
+                'runtime continued from 50 %, first game file source 404 -> second; desktop + Start menu shortcut -> Start-Coop.cmd')
+    case('Fresh install next to the installer', fresh)
 
     def update_mode():
         release.root = work / 'release-b'
-        run = install(installer, folder)
-        if run.returncode or 'existing installation: update' not in run.stdout:
+        for link in links.rglob('*.lnk'):
+            link.unlink()
+        run = started_here(placed(folder))  # The installer inside the game folder.
+        if run.returncode or 'existing installation: update' not in run.stdout or chosen(run) != str(folder):
             raise AssertionError(run.stdout[-1200:])
         same(folder, stage_b)
-        return 'existing installation detected, updated by its own updater exe, byte-equal to package B'
-    case('Same folder again: update mode', update_mode)
+        if list(links.rglob('*.lnk')):
+            raise AssertionError('an update created shortcuts')
+        return 'installer inside the game folder: that folder, update by its own updater exe, byte-equal to B, no shortcuts'
+    case('Installer in the game folder: update mode', update_mode)
+
+    def no_write_access():
+        target = Path(os.environ.get('ProgramFiles', r'C:\Program Files')) / 'Azeroth Survivors Together E2E'
+        if target.exists():
+            raise AssertionError(f'{target} exists already')
+        run = install(installer, target)
+        if run.returncode == 0 or 'No write access' not in run.stdout or target.exists():
+            raise AssertionError(run.stdout[-800:])
+        return 'Program Files without admin: clear message, nothing created, no admin prompt'
+    case('No write access', no_write_access)
+
+    def no_space():
+        target = work / 'no space'
+        run = install(installer, target, '--needed-space', str(10 ** 18))
+        if run.returncode == 0 or 'GiB needed. Nothing was installed' not in run.stdout or tree(target):
+            raise AssertionError(run.stdout[-800:])
+        return 'too little space: message, nothing installed'
+    case('Too little space', no_space)
 
     def damaged():
         release.root = work / 'release-a'

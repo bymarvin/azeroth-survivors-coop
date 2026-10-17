@@ -1,9 +1,13 @@
 //! Azeroth Survivors Together web installer (no admin rights).
 //!
-//! Installs or updates the co-op game folder from the signed release:
-//! 1. folder: --dir, a prompt, or %LOCALAPPDATA%\Azeroth Survivors Together;
-//!    a folder that already holds an installation is updated instead (its own
-//!    updater exe does that), never overwritten;
+//! Installs or updates the co-op game folder from the signed release, without questions:
+//! 1. folder: where the installer is. Next to it in "Azeroth Survivors Together"
+//!    (so a Downloads folder does not get 1179 loose files); the installer's own
+//!    folder if that already is a game folder (Start-Coop.cmd or
+//!    package-manifest.json), is named "Azeroth Survivors Together" or holds
+//!    nothing else. --dir overrides. An installation is updated (its own updater
+//!    exe does that), never overwritten. No write access (e.g. Program Files):
+//!    a clear message and stop, never an admin prompt;
 //! 2. at least 3 GiB free (downloads + temp);
 //! 3. latest.json + latest.json.sig: the Ed25519 signature is checked here
 //!    against the keys of the embedded reconstruction/self_update.py;
@@ -13,7 +17,8 @@
 //!    game_patch.py) installs everything else with that runtime: signed paths
 //!    only, game files from the signed source list, SHA-256 checks, user areas
 //!    untouched, resumable downloads;
-//! 6. optional Start menu / desktop shortcut to Start-Coop.cmd.
+//! 6. new installations: desktop and Start menu shortcut "Azeroth Survivors Together"
+//!    to Start-Coop.cmd (--no-shortcuts: none); at the end the folder opens in Explorer.
 //! Downloads use Windows' own curl.exe (System32, HTTPS only, at most 5 redirects).
 //! Boot-log lines on the console and in <folder>\coop-update\install.log.
 
@@ -72,31 +77,37 @@ impl Step {
 
 struct Options {
     dir: Option<PathBuf>,
-    yes: bool,
-    shortcuts: Option<bool>,
+    shortcuts: bool,
     release_url: String,
     allow_local_http: bool,
     no_pause: bool,
+    open: bool,
+    needed_space: u64,
+    shortcut_folder: Option<PathBuf>,
 }
 
 fn options() -> Result<Options, String> {
-    let mut o = Options { dir: None, yes: false, shortcuts: None, release_url: RELEASE_URL.into(),
-                          allow_local_http: false, no_pause: false };
+    let mut o = Options { dir: None, shortcuts: true, release_url: RELEASE_URL.into(), allow_local_http: false,
+                          no_pause: false, open: true, needed_space: NEEDED_SPACE, shortcut_folder: None };
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--dir" => o.dir = Some(PathBuf::from(args.next().ok_or("--dir needs a folder")?)),
-            "--yes" => o.yes = true,
-            "--shortcuts" => o.shortcuts = Some(true),
-            "--no-shortcuts" => o.shortcuts = Some(false),
+            "--yes" | "--shortcuts" => {} // Older options: there are no questions any more, shortcuts are the default.
+            "--no-shortcuts" => o.shortcuts = false,
             "--no-pause" => o.no_pause = true,
-            // Diagnostics/tests, like the updater: another release address, local HTTP.
+            "--no-open" => o.open = false,
+            // Diagnostics/tests, like the updater: another release address, local HTTP, a space limit, a folder
+            // for the shortcuts instead of the desktop and Start menu.
             "--release-url" => o.release_url = args.next().ok_or("--release-url needs an address")?,
             "--allow-local-http" => o.allow_local_http = true,
+            "--needed-space" => o.needed_space = args.next().and_then(|v| v.parse().ok()).ok_or("--needed-space needs bytes")?,
+            "--shortcut-folder" => o.shortcut_folder = Some(PathBuf::from(args.next().ok_or("--shortcut-folder needs a folder")?)),
             "--help" | "-h" => {
-                println!("Azeroth Survivors Together installer\n  --dir <folder>   install or update this folder\n  \
-                          --yes            no questions (default folder, shortcuts as chosen)\n  \
-                          --shortcuts / --no-shortcuts\n  --no-pause");
+                println!("Azeroth Survivors Together installer: installs next to itself, no questions\n  \
+                          --dir <folder>   install or update this folder instead\n  \
+                          --no-shortcuts   no desktop / Start menu shortcut\n  \
+                          --no-open        do not open the folder at the end\n  --no-pause");
                 std::process::exit(0);
             }
             other => return Err(format!("unknown option {other} (--help lists them)")),
@@ -123,12 +134,40 @@ fn finish(code: u8, no_pause: bool) -> ExitCode {
     ExitCode::from(code)
 }
 
-fn ask(question: &str) -> String {
-    print!("{question}");
-    let _ = io::stdout().flush();
-    let mut answer = String::new();
-    let _ = io::stdin().lock().read_line(&mut answer);
-    answer.trim().to_string()
+const FOLDER_NAME: &str = "Azeroth Survivors Together";
+
+fn is_game_folder(dir: &Path) -> bool {
+    dir.join("Start-Coop.cmd").is_file() || dir.join("package-manifest.json").is_file()
+}
+
+/// Where to install without asking: see the top of this file.
+fn choose_folder(o: &Options) -> Result<PathBuf, String> {
+    if let Some(dir) = &o.dir {
+        return Ok(if dir.is_absolute() { dir.clone() } else { env::current_dir().map_err(|e| e.to_string())?.join(dir) });
+    }
+    let exe = env::current_exe().map_err(|e| format!("cannot find the installer's own folder: {e}"))?;
+    let here = exe.parent().ok_or("the installer has no folder")?.to_path_buf();
+    let alone = fs::read_dir(&here).map(|entries| entries.filter_map(Result::ok)
+        .all(|e| e.path() == exe || e.file_name() == "coop-update")).unwrap_or(false);
+    let named = here.file_name().is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case(FOLDER_NAME));
+    Ok(if is_game_folder(&here) || named || alone { here } else { here.join(FOLDER_NAME) })
+}
+
+/// Create the folder and prove that files can be written there (Program Files needs admin rights: stop instead).
+fn check_writable(dir: &Path) -> Result<(), String> {
+    let refuse = |e: io::Error| {
+        if e.kind() == io::ErrorKind::PermissionDenied {
+            format!("No write access to {} (folders like Program Files need admin rights). Nothing was installed. \
+                     Move the installer to a folder of your own, e.g. Downloads, Documents or D:\\Games, and start it again.",
+                    dir.display())
+        } else {
+            format!("cannot write to {}: {e}. Nothing was installed.", dir.display())
+        }
+    };
+    fs::create_dir_all(dir.join("coop-update")).map_err(refuse)?;
+    let probe = dir.join("coop-update").join("write-test.tmp");
+    fs::write(&probe, b"ok").map_err(refuse)?;
+    fs::remove_file(&probe).map_err(refuse)
 }
 
 fn system32(tool: &str) -> PathBuf {
@@ -242,15 +281,19 @@ fn run_updater(o: &Options, dir: &Path) -> Result<i32, String> {
     Ok(code)
 }
 
-fn shortcuts(dir: &Path) -> Result<(), String> {
+fn shortcuts(dir: &Path, test_folder: Option<&Path>) -> Result<(), String> {
     let quote = |p: &Path| p.display().to_string().replace('\'', "''");
     let target = quote(&dir.join("Start-Coop.cmd"));
     let icon = quote(&dir.join("AzerothSurvivors.exe"));
     let folder = quote(dir);
+    let (menu, desk) = match test_folder {
+        Some(t) => (format!("'{}'", quote(&t.join("Programs"))), format!("'{}'", quote(&t.join("Desktop")))),
+        None => ("[Environment]::GetFolderPath('Programs')".into(), "[Environment]::GetFolderPath('Desktop')".into()),
+    };
     let script = format!(
         "$w = New-Object -ComObject WScript.Shell; \
-         $menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Azeroth Survivors Together.lnk'; \
-         $desk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Azeroth Survivors Together.lnk'; \
+         $menu = Join-Path {menu} 'Azeroth Survivors Together.lnk'; \
+         $desk = Join-Path {desk} 'Azeroth Survivors Together.lnk'; \
          foreach ($p in @($menu, $desk)) {{ $s = $w.CreateShortcut($p); $s.TargetPath = '{target}'; \
          $s.WorkingDirectory = '{folder}'; $s.IconLocation = '{icon},0'; \
          $s.Description = 'Azeroth Survivors Together co-op'; $s.Save() }}");
@@ -260,30 +303,52 @@ fn shortcuts(dir: &Path) -> Result<(), String> {
     if status.success() { Ok(()) } else { Err(format!("PowerShell exit {:?}", status.code())) }
 }
 
-fn install(o: &Options) -> Result<(), String> {
-    let default = env::var("LOCALAPPDATA").map(|d| PathBuf::from(d).join("Azeroth Survivors Together"))
-        .map_err(|_| "LOCALAPPDATA is not set".to_string())?;
-    let dir = match &o.dir {
-        Some(dir) => dir.clone(),
-        None if o.yes => default,
-        None => {
-            let answer = ask(&format!("Install folder [{}]: ", default.display()));
-            if answer.is_empty() { default } else { PathBuf::from(answer.trim_matches('"')) }
+const RELOCATED: &str = "COOP_INSTALLER_RELOCATED";
+
+/// The updater refuses a folder that a program still runs from, the installer included. Inside the target folder
+/// it therefore continues from a copy in %TEMP% (same console and options, --dir set) and this process ends.
+fn relocate(dir: &Path) -> Result<bool, String> {
+    let temp = env::temp_dir();
+    let exe = env::current_exe().map_err(|e| e.to_string())?;
+    if let Ok(entries) = fs::read_dir(&temp) {
+        for entry in entries.filter_map(Result::ok) {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with("azsurvivors-installer-") && name.ends_with(".exe") && entry.path() != exe {
+                let _ = fs::remove_file(entry.path()); // Copies of earlier runs; one still running stays.
+            }
         }
-    };
-    let dir = if dir.is_absolute() { dir } else { env::current_dir().map_err(|e| e.to_string())?.join(dir) };
-    fs::create_dir_all(dir.join("coop-update")).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
-    *LOG.lock().unwrap() = OpenOptions::new().create(true).append(true).open(dir.join("coop-update").join("install.log")).ok();
+    }
+    let inside = fs::canonicalize(&exe).ok().zip(fs::canonicalize(dir).ok()).is_some_and(|(e, d)| e.starts_with(d));
+    if !inside || env::var_os(RELOCATED).is_some() {
+        return Ok(false);
+    }
+    let copy = temp.join(format!("azsurvivors-installer-{}.exe", std::process::id()));
+    fs::copy(&exe, &copy).map_err(|e| format!("cannot copy the installer to {}: {e}", temp.display()))?;
+    Command::new(&copy).args(env::args_os().skip(1)).arg("--dir").arg(dir).env(RELOCATED, "1").spawn()
+        .map_err(|e| format!("cannot start the installer copy: {e}"))?;
+    Ok(true)
+}
+
+fn install(o: &Options) -> Result<(), String> {
+    let dir = choose_folder(o)?;
+    if relocate(&dir)? {
+        return Err(String::from(RELOCATED));
+    }
     let existing = is_installation(&dir);
     log(" INFO ", &format!("Folder {} ({})", dir.display(),
                            if existing { "existing installation: update" } else { "new installation" }));
+    let s = step("Write access");
+    check_writable(&dir)?;
+    s.ok("");
+    *LOG.lock().unwrap() = OpenOptions::new().create(true).append(true).open(dir.join("coop-update").join("install.log")).ok();
 
     if !existing {
         let s = step("Free disk space");
         let free = free_space(&dir).ok_or("cannot read the free disk space")?;
-        if free < NEEDED_SPACE {
-            return Err(format!("{:.1} GiB free on that drive, {:.1} GiB needed. Free some space or choose another folder.",
-                               free as f64 / (1u64 << 30) as f64, NEEDED_SPACE as f64 / (1u64 << 30) as f64));
+        if free < o.needed_space {
+            return Err(format!("{:.1} GiB free on that drive, {:.1} GiB needed. Nothing was installed. Free some space \
+                                or move the installer to another drive and start it again.",
+                               free as f64 / (1u64 << 30) as f64, o.needed_space as f64 / (1u64 << 30) as f64));
         }
         s.ok(&format!("{:.1} GiB free", free as f64 / (1u64 << 30) as f64));
     } else if dir.join(UPDATER_ASSET).is_file() {
@@ -299,7 +364,7 @@ fn install(o: &Options) -> Result<(), String> {
             return Err(format!("the update failed (exit {:?}); the folder keeps its previous version", status.code()));
         }
         s.ok("done");
-        return offer_shortcuts(o, &dir);
+        return done(o, &dir, false);
     }
 
     let work = dir.join("coop-update").join("install");
@@ -352,23 +417,23 @@ fn install(o: &Options) -> Result<(), String> {
     if code != 0 {
         return Err(format!("the installation stopped (updater exit {code}); run the installer again to continue"));
     }
-    offer_shortcuts(o, &dir)
+    done(o, &dir, true)
 }
 
-fn offer_shortcuts(o: &Options, dir: &Path) -> Result<(), String> {
-    let wanted = match o.shortcuts {
-        Some(choice) => choice,
-        None if o.yes => false,
-        None => !ask("Create Start menu and desktop shortcuts? [Y/n]: ").to_lowercase().starts_with('n'),
-    };
-    if wanted {
+/// Shortcuts for a new installation (an update leaves the user's shortcuts alone), the folder in Explorer.
+fn done(o: &Options, dir: &Path, new: bool) -> Result<(), String> {
+    if new && o.shortcuts {
         let s = step("Shortcuts");
-        match shortcuts(dir) {
-            Ok(()) => s.ok("Start menu and desktop"),
+        match shortcuts(dir, o.shortcut_folder.as_deref()) {
+            Ok(()) => s.ok("desktop and Start menu: Azeroth Survivors Together"),
             Err(error) => log(" WARN ", &format!("Shortcuts: {error} (start Start-Coop.cmd in the folder instead)")),
         }
     }
-    log("  OK  ", &format!("Azeroth Survivors Together is ready in {}. Start it with Start-Coop.cmd.", dir.display()));
+    log("  OK  ", &format!("Done - start Start-Coop.cmd (folder {}).", dir.display()));
+    if o.open && own_console() {
+        let _ = Command::new(env::var("SystemRoot").map(|r| Path::new(&r).join("explorer.exe"))
+                             .unwrap_or_else(|_| PathBuf::from("explorer.exe"))).arg(dir).spawn();
+    }
     Ok(())
 }
 
@@ -383,6 +448,7 @@ fn main() -> ExitCode {
     log(" INFO ", "Azeroth Survivors Together installer (no admin rights needed)");
     match install(&o) {
         Ok(()) => finish(0, o.no_pause),
+        Err(error) if error == RELOCATED => ExitCode::SUCCESS, // The copy in %TEMP% carries on in this console.
         Err(error) => {
             log("FAILED", &error);
             finish(2, o.no_pause)
