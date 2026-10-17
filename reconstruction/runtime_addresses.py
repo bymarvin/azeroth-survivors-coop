@@ -686,7 +686,8 @@ class RuntimeAddresses:
                         'bosses', 'shared_xp', 'shared_gold', 'independent_talents', 'independent_loot',
                         'pause_resume', 'revival', 'saves', 'guest_departure', 'host_shutdown',
                         'victory_keep_fighting', 'victory_new_hero', 'map_progression', 'fall_revival_unlock',
-                        'next_run', 'next_run_after_defeat'}
+                        'next_run', 'next_run_after_defeat',
+                        'next_run_relay', 'victory_new_hero_relay'}
             if acceptance.get('identity') != profile['identity']:
                 raise ValueError('Source-bound native party acceptance is missing or stale; rerun compatibility testing')
             if (acceptance.get('failures') != [] or not acceptance.get('runs') or

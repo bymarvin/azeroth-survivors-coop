@@ -44,6 +44,8 @@ SUITES = (
     # 0.0.16: Next run keeps the party: victory/team defeat -> new room over the game channels -> run 2.
     ('next-run', 'verify_next_run.py', [], ('next_run',)),
     ('next-run-defeat', 'verify_next_run.py', ['--defeat'], ('next_run_after_defeat',)),
+    # 0.0.17: the same over a local relay/server.py (forced relay route), held after New hero: the 0.0.16 relay cut.
+    ('next-run-relay', 'verify_next_run.py', ['--relay'], ('next_run_relay', 'victory_new_hero_relay')),
     # 0.95.0: druid Cat/Dire Bear forms (display model) of host and guest reach every client.
     ('druid-forms', 'verify_druid_forms.py', [], ('druid_forms',)),
     # 0.95.0: menu "give up" - a guest leaves alone, the host ends the run for everyone.

@@ -78,7 +78,7 @@ class LauncherProfile:
                 except OSError:
                     pass
 
-    def log_exception(self, error, slot, stage='game session'):
+    def log_exception(self, error, slot, stage='game session', quiet=False):
         role = 'host' if slot == 1 else 'guest'
         now = datetime.now(timezone.utc)
         log = self.folder / 'logs' / f'{now:%Y%m%dT%H%M%S%fZ}-{role}-{slot}-pid{os.getpid()}-{uuid.uuid4().hex[:8]}.log'
@@ -89,6 +89,7 @@ class LauncherProfile:
         except OSError as failure:
             print(f'{role} {stage} failed; could not save traceback ({type(failure).__name__}).\n{details}', file=sys.stderr, flush=True)
             return None
-        concise = str(error).replace('\r', ' ').replace('\n', ' ')[:240]
-        print(f'{role} slot {slot}: {stage} failed: {concise}. Full traceback: {log}', file=sys.stderr, flush=True)
+        if not quiet:  # quiet: kept for the report, nothing shown to the player.
+            concise = str(error).replace('\r', ' ').replace('\n', ' ')[:240]
+            print(f'{role} slot {slot}: {stage} failed: {concise}. Full traceback: {log}', file=sys.stderr, flush=True)
         return log

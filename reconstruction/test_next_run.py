@@ -256,7 +256,7 @@ class AcceptanceVerifyTests(unittest.TestCase):
             first.append(run1)
         return first, second
 
-    def check(self, first, second, defeat=False, results=None):
+    def check(self, first, second, defeat=False, results=None, relay=False):
         import native_probe
         import verify_next_run
         results = results or [dict(passed=True, rooms=['r1', 'r2'], slot=n) for n in range(1, 5)]
@@ -270,7 +270,24 @@ class AcceptanceVerifyTests(unittest.TestCase):
             self.assertEqual(command[-2:], ['1', '2' if defeat else '3'])  # The next map of run 2.
         with patch.object(verify_next_run, 'rows', lambda n, run: (first, second)[run][n - 1]), \
                 patch.object(native_probe, '_candidate_home', home), patch('subprocess.run', side_effect=staging):
-            return verify_next_run.verify(defeat, results)
+            return verify_next_run.verify(defeat, results, relay)
+
+    def test_relay_variant(self):
+        relayed = [dict(passed=True, rooms=['r1', 'r2'], slot=n, held=20.5 if n == 1 else 0,
+                        routes=[] if n == 1 else ['direct_failed', 'relay_connected', 'direct_failed', 'relay_connected'])
+                   for n in range(1, 5)]
+        self.assertTrue(self.check(*self.logs(), results=relayed, relay=True)['relay'])
+        for change in ('direct', 'short_hold', 'cut'):
+            first, second = self.logs()
+            results = json.loads(json.dumps(relayed))
+            if change == 'direct':
+                results[2]['routes'] = ['direct_connected', 'relay_connected']
+            elif change == 'short_hold':
+                results[0]['held'] = 5
+            else:  # The 0.0.16 relay cut after New hero.
+                first[1].append(dict(event='transport_failure', peer=1))
+            with self.subTest(change=change), self.assertRaises(AssertionError):
+                self.check(first, second, results=results, relay=True)
 
     def test_both_variants_pass(self):
         self.assertEqual(self.check(*self.logs())['run2_zone'], 'duskwood')

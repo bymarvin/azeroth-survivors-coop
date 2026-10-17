@@ -108,8 +108,10 @@ def main():
     ap.add_argument('--retire-key', action='append', default=[])
     ap.add_argument('--key-dir', type=Path, default=sign_release.KEY_DIR)
     ap.add_argument('--out', type=Path)
-    ap.add_argument('--full-package-url', help='HTTPS page or file of the full package (shown when game files '
-                                               'cannot be downloaded directly)')
+    ap.add_argument('--full-package-url', default='https://azsurvivors.duckdns.org/full/Azeroth-Survivors-Together.zip',
+                    help='HTTPS page or file of the full package (shown when game files cannot be downloaded directly); '
+                         'default: the newest full zip on the server (publish_release --full-zip)')
+    ap.add_argument('--full-zip', type=Path, help='with --publish: the full package zip for that address')
     ap.add_argument('--no-check-urls', action='store_true', help='do not probe the game file addresses')
     ap.add_argument('--allow-local-http', action='store_true', help=argparse.SUPPRESS)
     ap.add_argument('--unhosted-source', default=UNHOSTED, help=argparse.SUPPRESS)  # Tests: a local page.
@@ -302,7 +304,8 @@ def main():
     if args.publish or args.publish_dry_run:
         sys.path.insert(0, str(Path(__file__).resolve().parent))  # python -I leaves the script folder out.
         import publish_release
-        return publish_release.publish(out, latest, args.gamefiles_url, args.gamefiles, dry=not args.publish)
+        return publish_release.publish(out, latest, args.gamefiles_url, args.gamefiles, dry=not args.publish,
+                                       full_zip=args.full_zip)
     return 0
 
 

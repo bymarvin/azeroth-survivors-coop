@@ -17,6 +17,9 @@
 !package-manifest.json
 !coop-lab/
 coop-lab/*
+!coop-lab/azsurvivors.ico
+!coop-lab/make_icon.py
+!coop-lab/build_release_exes.py
 !coop-lab/port-7264/
 coop-lab/port-7264/*
 !coop-lab/port-7264/*.py
@@ -45,6 +48,7 @@ coop-lab/updater/*
 !coop-lab/updater/exe/
 coop-lab/updater/exe/*
 !coop-lab/updater/exe/Cargo.toml
+!coop-lab/updater/exe/Cargo.lock
 !coop-lab/updater/exe/build.rs
 !coop-lab/updater/exe/src/
 !coop-lab/updater/patchgen/

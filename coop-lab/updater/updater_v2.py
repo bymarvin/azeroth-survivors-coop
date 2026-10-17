@@ -182,8 +182,10 @@ def fetch_files(net, latest, files, needed, work):
         os.replace(temporary, target)
         su.done(f'Build {p}', started, f'{kind}, SHA-256 matches the release')
         staged[p] = target
-    rest = [p for p in needed if p not in plans]
+    rest = [p for p in needed if p not in plans and p != su.UPDATER_ASSET]
     staged.update(_fetch_files(net, latest, files, rest, work) if rest else {})
+    if su.UPDATER_ASSET in needed and su.UPDATER_ASSET not in plans:
+        staged.update(fetch_updater_exe(net, latest, files, work))
     running = RUNNING.get('exe')
     if su.UPDATER_ASSET in staged and running is not None and running == (root / su.UPDATER_ASSET).resolve():
         # A running exe cannot be replaced (install would refuse it as locked): it follows after the install.
@@ -194,7 +196,73 @@ def fetch_files(net, latest, files, needed, work):
     return staged
 
 
+def security_blocked(error):
+    """Windows security refused to write an exe: ERROR_VIRUS_INFECTED/_DELETED (225/226), which the C runtime
+    reports as [Errno 22] Invalid argument without a WinError, or access denied right after writing."""
+    return (getattr(error, 'winerror', None) in (225, 226) or isinstance(error, PermissionError)
+            or getattr(error, 'errno', None) == 22)
+
+
+def fetch_updater_exe(net, latest, files, work):
+    """The updater exe (in every package since 0.0.13) is the one file the co-op does not need to run.
+
+    Seen on a player's PC: Windows security blocked writing the unsigned exe while the installer unpacked
+    it (OSError [Errno 22] Invalid argument) and the whole installation stopped, again on every retry. It
+    is fetched last and on its own; if Windows blocks it, everything else is installed and the player is
+    told how to allow it. Start-Coop.cmd and the next update fetch it again once it is allowed.
+    """
+    try:
+        return _fetch_files(net, latest, files, [su.UPDATER_ASSET], work)
+    except OSError as error:
+        if not security_blocked(error):
+            raise
+        try:
+            (work / 'files' / su.UPDATER_ASSET).unlink(missing_ok=True)  # A partly written copy, if any.
+        except OSError:
+            pass
+        su.log(' WARN ', f'Windows security blocked {su.UPDATER_ASSET} ({error.__class__.__name__}: {error}). '
+                         'The co-op is installed without it and works. To get automatic updates: Windows Security > '
+                         'Virus & threat protection > Protection history > the blocked item > Allow on device, '
+                         'then run the installer (or Start-Coop.cmd) again.')
+        return {}
+
+
 su.validate_files, su.fetch_files, su.ensure_closed = validate_files, fetch_files, ensure_closed
+
+
+def parent_pid():
+    """os.getppid() without PssCaptureSnapshot: Python 3.12 calls it on Windows, Wine 10 does not implement it
+    and aborts the process (Linux players). The toolhelp snapshot works on Windows and Wine alike."""
+    import ctypes
+    from ctypes import wintypes
+
+    class Entry(ctypes.Structure):
+        _fields_ = [('dwSize', wintypes.DWORD), ('cntUsage', wintypes.DWORD), ('th32ProcessID', wintypes.DWORD),
+                    ('th32DefaultHeapID', ctypes.c_size_t), ('th32ModuleID', wintypes.DWORD),
+                    ('cntThreads', wintypes.DWORD), ('th32ParentProcessID', wintypes.DWORD),
+                    ('pcPriClassBase', ctypes.c_long), ('dwFlags', wintypes.DWORD), ('szExeFile', ctypes.c_wchar * 260)]
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+    kernel.CreateToolhelp32Snapshot.argtypes = (wintypes.DWORD, wintypes.DWORD)
+    kernel.Process32FirstW.argtypes = kernel.Process32NextW.argtypes = (wintypes.HANDLE, ctypes.POINTER(Entry))
+    kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+    snapshot = kernel.CreateToolhelp32Snapshot(2, 0)  # TH32CS_SNAPPROCESS
+    if not snapshot or snapshot == wintypes.HANDLE(-1).value:
+        return 0  # Unknown: 0 is skipped anyway; this updater's starter then simply counts as a process.
+    try:
+        entry = Entry(dwSize=ctypes.sizeof(Entry))
+        me, ok = os.getpid(), kernel.Process32FirstW(snapshot, ctypes.byref(entry))
+        while ok:
+            if entry.th32ProcessID == me:
+                return entry.th32ParentProcessID
+            ok = kernel.Process32NextW(snapshot, ctypes.byref(entry))
+        return 0
+    finally:
+        kernel.CloseHandle(snapshot)
+
+
+if os.name == 'nt':
+    os.getppid = parent_pid  # self_update.processes_in skips its starter by os.getppid().
 
 
 def main(argv=None, builtin=su.TRUSTED_KEYS):

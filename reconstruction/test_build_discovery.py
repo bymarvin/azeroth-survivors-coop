@@ -43,7 +43,7 @@ class BuildDiscoveryTests(unittest.TestCase):
         from build_hooks import test_adapter_candidate
         from types import SimpleNamespace
         import subprocess
-        for first, expected in ((SimpleNamespace(returncode=1), 12),
+        for first, expected in ((SimpleNamespace(returncode=1), 13),
                                 (subprocess.TimeoutExpired('test', 420), 1)):
             with tempfile.TemporaryDirectory() as folder:
                 root = Path(folder)
@@ -57,15 +57,16 @@ class BuildDiscoveryTests(unittest.TestCase):
                         patch('build_hooks.earned_gear_fixture', return_value=root / 'earned.txt'), \
                         patch('coop_transport.create_pairing'), \
                         patch('native_test_process.run_verifier', side_effect=[first] +
-                              [SimpleNamespace(returncode=0)] * 11) as launch:
+                              [SimpleNamespace(returncode=0)] * 12) as launch:
                     result = test_adapter_candidate('game.exe', candidate, reports)
                 self.assertEqual(launch.call_count, expected)
                 self.assertEqual(result['status'], 'failed')
                 self.assertNotIn('pause_resume', result['cases'])
-                self.assertEqual('shared_gold' in result['cases'], expected == 12)
-                self.assertEqual('fall_revival_unlock' in result['cases'], expected == 12)
-                self.assertEqual('next_run_after_defeat' in result['cases'], expected == 12)
-                if expected == 12:
+                self.assertEqual('shared_gold' in result['cases'], expected == 13)
+                self.assertEqual('fall_revival_unlock' in result['cases'], expected == 13)
+                self.assertEqual('next_run_after_defeat' in result['cases'], expected == 13)
+                self.assertEqual('victory_new_hero_relay' in result['cases'], expected == 13)
+                if expected == 13:
                     room = launch.call_args_list[2]
                     self.assertIn('--automatic-menus', room.args[0])
                     self.assertIn('--guest-request-map', room.args[0])

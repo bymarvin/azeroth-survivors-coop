@@ -813,6 +813,69 @@ def main():
             lab.close()
     test('Updater 4: signed source list and fresh install', game_sources)
 
+    def blocked_updater_exe():
+        """Player report 0.0.16: Windows security blocked writing the unsigned updater exe while the installer
+        unpacked it ([Errno 22] Invalid argument, again on every retry). The rest is installed, the exe later."""
+        import contextlib
+        import io
+        v1, v2 = packages()
+        v2[self_update.UPDATER_ASSET] = b'updater exe 0.0.16'
+        lab = Lab(args.work, 'blocked-exe', version_files=(v1, v2), min_updater=4, updater=b'updater exe 0.0.16')
+        try:
+            fresh = lab.work / 'fresh'
+            for rel, data in v2.items():  # The installer unpacks the signed runtime archive first.
+                if rel.startswith('.coop-runtime/'):
+                    (fresh / rel).parent.mkdir(parents=True, exist_ok=True)
+                    (fresh / rel).write_bytes(data)
+            original = self_update.extract_member
+
+            def blocked(errno_value):
+                def extract(archive, name, size, digest, target):
+                    if Path(target).name == self_update.UPDATER_ASSET:
+                        Path(target).write_bytes(b'partial')
+                        raise OSError(errno_value, os.strerror(errno_value), str(target))
+                    return original(archive, name, size, digest, target)
+                return extract
+
+            def install(extract):
+                updater_v2.su.LOG = None
+                updater_v2.su.IGNORED_PIDS.clear()
+                output = io.StringIO()
+                with mock.patch.object(self_update, 'extract_member', extract), contextlib.redirect_stdout(output):
+                    try:
+                        code = updater_v2.main(['--game', str(fresh), '--release-url', lab.github.url, '--allow-local-http',
+                                                '--updater-version', '4', '--timeout', '3'], builtin=(lab.pub['key-1'],))
+                    except OSError as error:
+                        code = error
+                return code, output.getvalue()
+            code, output = install(blocked(28))  # Disk full is a real failure: nothing hides it.
+            assert code != 0, code
+            code, output = install(blocked(22))
+            assert code == 0, (code, output[-800:])
+            assert 'Windows security blocked Azeroth-Survivors-Together-Updater.exe' in output, output[-800:]
+            assert 'Allow on device' in output
+            assert not (fresh / self_update.UPDATER_ASSET).exists()
+            for rel, data in v2.items():
+                if rel != self_update.UPDATER_ASSET:
+                    assert (fresh / rel).read_bytes() == data, rel
+            code, output = install(original)  # Allowed again: the next run brings the exe.
+            assert code == 0, output[-800:]
+            assert (fresh / self_update.UPDATER_ASSET).read_bytes() == b'updater exe 0.0.16'
+            return 'Errno 22 on the updater exe: everything else installed + WARN; later run adds it; disk full still fails'
+        finally:
+            lab.close()
+    test('Blocked updater exe does not stop the installation', blocked_updater_exe)
+
+    def parent_without_pss():
+        """Wine 10 aborts on os.getppid (PssCaptureSnapshot); updater 4 reads the parent from a toolhelp snapshot."""
+        import nt
+        assert os.getppid is updater_v2.parent_pid, 'os.getppid not replaced'
+        got, want = updater_v2.parent_pid(), nt.getppid()
+        assert got == want and got > 0, (got, want)
+        return f'toolhelp parent {got} == nt.getppid(), no PssCaptureSnapshot'
+    if os.name == 'nt':
+        test('Parent process without PssCaptureSnapshot (Wine)', parent_without_pss)
+
     def auto_update_check():
         """Start-Coop.cmd step: coop_autoupdate decides (0 = launcher, 10 = run the updater exe first)."""
         sys.path.insert(0, str(ROOT))

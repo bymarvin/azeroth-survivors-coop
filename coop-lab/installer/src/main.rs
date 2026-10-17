@@ -12,15 +12,19 @@
 //! 3. latest.json + latest.json.sig: the Ed25519 signature is checked here
 //!    against the keys of the embedded reconstruction/self_update.py;
 //! 4. the runtime archive named in it (GitHub; SHA-256 and size checked,
-//!    interrupted downloads continue) is unpacked with Windows' tar.exe;
+//!    interrupted downloads continue) is unpacked by the built-in ZIP reader (src/unzip.rs);
 //! 5. the embedded updater (updater_v2.py on top of self_update.py and
 //!    game_patch.py) installs everything else with that runtime: signed paths
 //!    only, game files from the signed source list, SHA-256 checks, user areas
 //!    untouched, resumable downloads;
 //! 6. new installations: desktop and Start menu shortcut "Azeroth Survivors Together"
 //!    to Start-Coop.cmd (--no-shortcuts: none); at the end the folder opens in Explorer.
-//! Downloads use Windows' own curl.exe (System32, HTTPS only, at most 5 redirects).
+//! Downloads use WinHTTP (src/net.rs: HTTPS only, at most 5 redirects, resumable). No external tool is
+//! needed, so it also runs under Wine/Proton (curl.exe and tar.exe do not exist there).
 //! Boot-log lines on the console and in <folder>\coop-update\install.log.
+
+mod net;
+mod unzip;
 
 use base64::Engine;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
@@ -182,20 +186,10 @@ fn free_space(dir: &Path) -> Option<u64> {
     (ok != 0).then_some(free)
 }
 
-/// Download with Windows' curl.exe: HTTPS only (unless --allow-local-http), at most 5 redirects, resumable.
-fn download(o: &Options, url: &str, target: &Path, resume: bool) -> Result<(), String> {
-    let mut command = Command::new(system32("curl.exe"));
-    command.args(["--fail", "--silent", "--show-error", "--location", "--max-redirs", "5", "--retry", "3",
-                  "--retry-delay", "2", "--connect-timeout", "15", "--user-agent", "azsurvivors-installer/1"]);
-    if !o.allow_local_http {
-        command.args(["--proto", "=https", "--proto-redir", "=https"]);
-    }
-    if resume {
-        command.args(["--continue-at", "-"]);
-    }
-    let status = command.arg("--output").arg(target).arg(url).status()
-        .map_err(|e| format!("curl.exe could not be started ({e}); Windows 10 1803 or newer is needed"))?;
-    if status.success() { Ok(()) } else { Err(format!("download of {url} failed (curl exit {:?})", status.code())) }
+/// Download through WinHTTP (also under Wine/Proton, where curl.exe does not exist): HTTPS only (unless
+/// --allow-local-http), at most 5 redirects, resumable, at most `limit` bytes.
+fn download(o: &Options, url: &str, target: &Path, resume: bool, limit: u64) -> Result<(), String> {
+    net::download(url, target, resume, o.allow_local_http, limit)
 }
 
 fn sha256_file(path: &Path) -> io::Result<String> {
@@ -450,8 +444,8 @@ fn install(o: &Options) -> Result<(), String> {
     let work = dir.join("coop-update").join("install");
     fs::create_dir_all(&work).map_err(|e| e.to_string())?;
     let s = step("Read signed release description");
-    download(o, &format!("{}latest.json", o.release_url), &work.join("latest.json"), false)?;
-    download(o, &format!("{}latest.json.sig", o.release_url), &work.join("latest.json.sig"), false)?;
+    download(o, &format!("{}latest.json", o.release_url), &work.join("latest.json"), false, 256 << 10)?;
+    download(o, &format!("{}latest.json.sig", o.release_url), &work.join("latest.json.sig"), false, 4096)?;
     let data = fs::read(work.join("latest.json")).map_err(|e| e.to_string())?;
     let signature = fs::read(work.join("latest.json.sig")).map_err(|e| e.to_string())?;
     if data.len() > 256 << 10 {
@@ -475,7 +469,7 @@ fn install(o: &Options) -> Result<(), String> {
         let s = step("Download the co-op runtime");
         let archive = work.join(asset);
         if !(archive.is_file() && sha256_file(&archive).ok().as_deref() == Some(digest)) {
-            download(o, &format!("{}{asset}", o.release_url), &archive, true)?;
+            download(o, &format!("{}{asset}", o.release_url), &archive, true, size)?;
         }
         let got = fs::metadata(&archive).map(|m| m.len()).unwrap_or(0);
         if got != size || sha256_file(&archive).map_err(|e| e.to_string())? != digest {
@@ -484,12 +478,12 @@ fn install(o: &Options) -> Result<(), String> {
         }
         s.ok(&format!("{:.1} MiB, SHA-256 matches the release", size as f64 / (1u64 << 20) as f64));
         let s = step("Unpack the co-op runtime");
-        let status = Command::new(system32("tar.exe")).arg("-xf").arg(&archive).arg("-C").arg(&dir).status()
-            .map_err(|e| format!("tar.exe could not be started: {e}"))?;
-        if !status.success() || !dir.join(".coop-runtime").join("python.exe").is_file() {
-            return Err("unpacking the runtime failed".into());
+        // Own ZIP reader (no tar.exe under Wine/Proton); the archive's SHA-256 was checked above.
+        let files = unzip::extract(&archive, &dir, 4 << 30).map_err(|e| format!("unpacking the runtime failed: {e}"))?;
+        if !dir.join(".coop-runtime").join("python.exe").is_file() {
+            return Err("unpacking the runtime failed: no .coop-runtime/python.exe".into());
         }
-        s.ok("");
+        s.ok(&format!("{files} files"));
     }
 
     log(" INFO ", "Installing all files with the co-op updater (signed paths, SHA-256 checks)");

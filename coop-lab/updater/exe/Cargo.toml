@@ -17,5 +17,8 @@ path = "src/online.rs"
 opt-level = "s"
 lto = true
 codegen-units = 1
-strip = true
+# Debug information goes into a separate PDB next to the exe (crash analysis), never into the exe;
+# build.rs links with /Brepro and /PDBALTPATH:%_PDB% (reproducible, no build path).
+debug = "line-tables-only"
+strip = "none"
 panic = "abort"

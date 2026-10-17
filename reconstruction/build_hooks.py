@@ -622,6 +622,7 @@ def test_adapter_candidate(binary, path, directory, *, progress=None):
                 ('fall-unlock', 'verify_network_boss.py', ['--fall-before-victory'], ('fall_revival_unlock',)),
                 ('next-run', 'verify_next_run.py', [], ('next_run',)),
                 ('next-run-defeat', 'verify_next_run.py', ['--defeat'], ('next_run_after_defeat',)),
+                ('next-run-relay', 'verify_next_run.py', ['--relay'], ('next_run_relay', 'victory_new_hero_relay')),
             )
             boss_home = None
             for name, script, arguments, cases in suites:

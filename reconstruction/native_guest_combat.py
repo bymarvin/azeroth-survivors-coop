@@ -13,7 +13,7 @@ import time
 
 from native_probe import TICK, AWARD_XP, SPAWN, SPAWN_BOSS, FIND_SPAWN, DAMAGE, HURT, REMOVE_LOOT, OFFER_CHOICES, APPLY_EFFECT, ENEMY_AOE, GROUND_AOE, ENEMY_TARGET, allocate, checked, q
 from visibility_bridge import (Bridge, absolute_jump, guest_damage_patches, native_enemies, game_frame_code, validate_live_game,
-                               native_enemy, native_enemy_array, parse_native_enemies)
+                               native_enemy, native_enemy_array, parse_native_enemies, note_native_skip, finite_text)
 from world_packets import COMBAT, UPDATE, DESTROY, MONSTER, SELF, object_packet, Reader, PROGRESSION, values_packet, remap_combat, objects, dynamic_object, dynamic_caster, DISPLAY_ID
 from native_probe import HUD_DELIVER, game_field, IMAGE_SIZE, MAX_ENEMY_DAMAGE
 from play_limits import (MAX_COUNTER, MAX_ENEMIES, MAX_LIVE_SUMMONS, MAX_MULTIPLIER, MAX_NATIVE_OBJECTS, MAX_QUEUE,
@@ -211,15 +211,16 @@ class _NativeCombatBridge(Bridge):
             enemy_xmm = 6 if release_7264() else 14 if release_47e4() else 6 if release_0843() else 12
             validate_live_game(client, context, game_register, enemy_offset=128, enemy_frame=True)
             enemy_xy = struct.unpack_from('<ff', context, 416 + 16 * enemy_xmm)
-            if not all(math.isfinite(v) for v in enemy_xy):
-                raise ValueError('Nonfinite native enemy targeting position')
             xy = client.memory(q(context, game_register) + game_field(0x488), 8)
-            if not all(math.isfinite(v) for v in struct.unpack('<ff', xy)):
-                raise ValueError('Nonfinite native player targeting position')
+            # NaN/inf (an enemy record being torn down): no guest choice, the native target (the host) stays.
+            broken = not all(math.isfinite(v) for v in (*enemy_xy, *struct.unpack('<ff', xy)))
+            if broken:
+                note_native_skip('enemy_target_nonfinite', q(context, 136), enemy=finite_text(enemy_xy),
+                                 player=finite_text(struct.unpack('<ff', xy)))
             owner = 1
             # Radial attacks are centered on the enemy. Their native distance
             # check must retain the host position; the guest is checked separately.
-            if client.number == 1 and q(context, 136) != 3:
+            if client.number == 1 and q(context, 136) != 3 and not broken:
                 x, y = struct.unpack_from('<ff', context, 416 + 16 * enemy_xmm)
                 hx, hy = struct.unpack('<ff', xy)
                 closest = math.hypot(x - hx, y - hy) if self.native_states.get(1, (0,))[0] in (1, 2, 3) else float('inf')
@@ -248,9 +249,6 @@ class _NativeCombatBridge(Bridge):
             else:
                 validate_live_game(client, context, (136 if release_0843() else 176) if rva == ENEMY_AOE else 240)
             ground_xmm = 11 if v47 else 10
-            if rva == GROUND_AOE and not all(math.isfinite(v) for v in
-                    struct.unpack_from('<ff', context, 416 + 16 * ground_xmm)):
-                raise ValueError('Nonfinite native ground attack position')
             # Emulate the displaced unsigned-below branch without changing flags.
             below = bool(struct.unpack_from('<I', context, 68)[0] & 1)
             destinations = (0x53E5430, 0x53E6069) if rva == ENEMY_AOE else (0x53E1898, 0x53E1883)
@@ -267,8 +265,13 @@ class _NativeCombatBridge(Bridge):
                 else:
                     attacker = q(client.memory(q(context, 160) + (field('game_update_frame', 0x3D0) if UPDATED else 0x3C0), 8))
                     enemy = struct.unpack_from('<ff', context, 416 + 16 * ground_xmm)
+                    if not all(map(math.isfinite, enemy)):
+                        note_native_skip('area_attack_nonfinite', attacker, position=finite_text(enemy))
+                        enemy = None  # The native branch still runs; only the guest check is skipped.
                 if not (math.isfinite(radius) and 0 <= radius <= 1000 and math.isfinite(damage) and 0 <= damage <= MAX_ENEMY_DAMAGE):
-                    raise ValueError('Invalid native area attack')
+                    note_native_skip('area_attack_invalid', attacker, radius=finite_text([radius])[0],
+                                     damage=finite_text([damage])[0])
+                    return
                 guest_hit = False
                 if enemy and not self.draining and not self.router.paused:
                     for number in self.guests:
@@ -706,8 +709,8 @@ class _NativeCombatBridge(Bridge):
                 number = victim - 0xFF0100
                 damage = struct.unpack_from('<f', context, 432)[0]
                 if not math.isfinite(damage) or not 0 <= damage <= MAX_ENEMY_DAMAGE:
-                    raise ValueError('Invalid ordinary projectile damage')
-                if number in self.guests and self.native_states.get(number, (0,))[0] == 1:
+                    note_native_skip('projectile_damage_invalid', q(context, 184), damage=finite_text([damage])[0])
+                elif number in self.guests and self.native_states.get(number, (0,))[0] == 1:
                     queue = self.area_hits if number == 2 else self.areas_by_guest[number]
                     clock = struct.unpack('<f', client.memory(client.server + 0x10 + game_field(0x85C), 4))[0]
                     self.queue_incoming_hit(number, 'areas', (q(context, 184), damage), clock)
@@ -855,6 +858,7 @@ class _NativeCombatBridge(Bridge):
         self._enemy_snapshot, self._boss_definitions = snapshot, bosses
         stride, guid_offset, _ = enemy_layout()
         definition_offset = enemy_offset(0x80) - 0x68
+        bad = 0
         for offset in range(0, len(data), stride):
             guid = q(data, offset + guid_offset)
             if guid in poses:
@@ -863,11 +867,16 @@ class _NativeCombatBridge(Bridge):
                 if definition:
                     definition -= base
                     if not 0 <= definition < IMAGE_SIZE:
-                        raise ValueError('Enemy definition is not in the verified executable')
+                        # One record mid-teardown: skipped like an absent enemy.
+                        bad += 1
+                        note_native_skip('enemy_definition_invalid', guid)
+                        continue
                 else:
                     boss = q(data, offset + 0x30) - base
                     if q(data, offset + 0x18) == 0xFFFFFFFFFFFFFFFF or not 0 <= boss < IMAGE_SIZE - 0x58:
-                        raise ValueError('Invalid native boss definition')
+                        bad += 1
+                        note_native_skip('boss_definition_invalid', guid)
+                        continue
                     bosses[guid] = boss
                 struct.pack_into('<Q', flat, definition_offset, definition)
                 snapshot[guid] = (bytes(flat), *poses[guid])
@@ -875,6 +884,9 @@ class _NativeCombatBridge(Bridge):
                     # A queued GO can precede a death caused by injected guest
                     # damage. Retire cast metadata in packet order at DESTROY.
                     self.ranged_enemies[guid] = snapshot[guid]
+        if bad and bad == len(poses) >= 5:
+            # Every living enemy points outside the executable: a wrong layout, not a single broken entry.
+            raise ValueError('Enemy definition is not in the verified executable')
         if len(self.ranged_enemies) > 2 * MAX_ENEMIES:
             # Enemies that left without a DESTROY (run end): keep the current ones, drop the oldest others.
             stale = [g for g in self.ranged_enemies if g not in snapshot][:len(self.ranged_enemies) - 3 * MAX_ENEMIES // 2]
@@ -896,7 +908,8 @@ class _NativeCombatBridge(Bridge):
             if guid in by_guid:
                 health = struct.unpack_from('<f', data, by_guid[guid] * S + E(0xE0))[0]
                 if not math.isfinite(health):
-                    raise ValueError('Nonfinite native mirror health')
+                    note_native_skip('mirror_health_nonfinite', guid, health=finite_text([health])[0])
+                    continue
                 dealt = previous - max(0, health)
                 if dealt > 0 and guid in self.enemy_snapshot:
                     self.damage_pending[guid] = self.damage_pending.get(guid, 0) + dealt
@@ -1063,7 +1076,8 @@ class _NativeCombatBridge(Bridge):
                 return True
         multiplier = struct.unpack('<f', client.memory(game + game_field(0x514), 4))[0]
         if not math.isfinite(multiplier) or not 0 <= multiplier <= MAX_MULTIPLIER:
-            raise ValueError('Invalid personal XP multiplier')
+            note_native_skip('xp_multiplier_invalid', client.number, value=finite_text([multiplier])[0])
+            multiplier = self.xp_multipliers.get(client.number, 1)  # Keeps the last valid value.
         self.xp_multipliers[client.number] = multiplier
         if client.number == 1:
             client.put(self.party_xp_buffer, struct.pack('<f', self.party_xp_multiplier()))
@@ -1264,7 +1278,9 @@ class _NativeCombatBridge(Bridge):
         if not (math.isfinite(radius) and 0 <= radius <= 1000 and
                 math.isfinite(multiplier) and 0 <= multiplier <= 1000 and
                 math.isfinite(xp_multiplier) and 0 <= xp_multiplier <= 1000):
-            raise ValueError('Invalid native pickup profile')
+            note_native_skip('pickup_profile_invalid', client.number,
+                             values=finite_text([radius, multiplier, xp_multiplier]))
+            return False  # Tried again on the next write.
         for guid, (_, position, kind, _) in self.chests.items():
             price, reach = (cost, 3) if kind == 2 else (0, radius)
             gd = sum((a - b) ** 2 for a, b in zip(position, (guest.x, guest.y, guest.z)))

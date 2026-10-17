@@ -18,6 +18,7 @@ Order (players never see a half-uploaded release):
 already signed (uploads exactly what the dry run showed):
   publish_release.py <release folder> --gamefiles <dir> --gamefiles-url URL ... [--publish]
 """
+import hashlib
 import json
 import os
 import re
@@ -36,6 +37,8 @@ KEEP = 2
 MARGIN = 256 << 20
 INDEX = FILES + '/published.json'
 LATEST = ('latest.json.sig', 'latest.json')  # Uploaded last, signature before the description.
+FULL_NAME = 'Azeroth-Survivors-Together.zip'  # The full package at a fixed address, only the newest one.
+FULL_URL = f'https://{SERVER_HOST}/full/{FULL_NAME}'
 
 
 def log(tag, text):
@@ -149,17 +152,23 @@ def release_tag(version):
     return 'v' + match.group(1)
 
 
-def publish(out, latest, urls, gamefiles, dry=False, runner=None):
+def publish(out, latest, urls, gamefiles, dry=False, runner=None, full_zip=None):
     """Upload everything. Returns 0, or 1 before anything was uploaded if a check fails."""
     try:
-        return _publish(out, latest, urls, gamefiles, dry, runner)
+        return _publish(out, latest, urls, gamefiles, dry, runner, full_zip)
     except RuntimeError as error:  # sftp/gh failed: what is up stays, a rerun skips it and continues.
         log('FAILED', f'Veröffentlichen: {error}; nochmal starten setzt fort (latest.json kommt immer zuletzt)')
         return 1
 
 
-def _publish(out, latest, urls, gamefiles, dry, runner):
+def _publish(out, latest, urls, gamefiles, dry, runner, full_zip=None):
     runner = runner or Runner(dry)
+    if full_zip is not None:
+        full_zip = Path(full_zip)
+        with open(full_zip, 'rb') as head:
+            if head.read(4) != b'PK\x03\x04':
+                log('FAILED', f'Veröffentlichen: {full_zip} ist kein Zip; nichts hochgeladen')
+                return 1
     t0 = time.time()
     tag = release_tag(latest['version'])
     release_files = sorted(p for p in out.iterdir() if p.is_file() and p.name != 'UPLOAD.txt' and p.name not in LATEST)
@@ -182,6 +191,8 @@ def _publish(out, latest, urls, gamefiles, dry, runner):
     upload = [(directory, p) for directory in server_game for p in game_assets
               if existing[directory].get(p.name, (None,))[0] != p.stat().st_size]
     needed = sum(p.stat().st_size for _, p in upload) + sum(p.stat().st_size for p in release_files)
+    # The new full zip goes up next to the old one (.part) before it replaces it: count it in full.
+    needed += full_zip.stat().st_size if full_zip else 0
     try:
         index = json.loads(runner.read_file(INDEX) or '{}')
     except ValueError:
@@ -206,14 +217,16 @@ def _publish(out, latest, urls, gamefiles, dry, runner):
 
     def put_all(directory, paths):
         # reput resumes, but refuses a .part that does not exist yet: fresh files go up with put.
+        # An entry is a local file, or (local file, remote name); the rename replaces an existing file.
         partial = parse_listing(runner.sftp([f'-ls -l "{directory}"'], read_only=True))
         lines = [f'-mkdir "{directory}"']
-        for p in paths:
-            part = f'"{directory}/{p.name}.part"'
-            have = partial.get(p.name + '.part', (None,))[0]
+        for entry in paths:
+            p, name = entry if isinstance(entry, tuple) else (entry, entry.name)
+            part = f'"{directory}/{name}.part"'
+            have = partial.get(name + '.part', (None,))[0]
             if have != p.stat().st_size:
                 lines.append(f'{"reput" if have and have < p.stat().st_size else "put"} {local_arg(p)} {part}')
-            lines.append(f'rename {part} "{directory}/{p.name}"')
+            lines.append(f'rename {part} "{directory}/{name}"')
         runner.sftp(lines)
 
     for directory in server_game:
@@ -224,6 +237,20 @@ def _publish(out, latest, urls, gamefiles, dry, runner):
             put_all(directory, paths)
         log('  OK  ', f'Spieldateien -> {SERVER_HOST}{directory[len(FILES):]}/ ({time.time() - started:.1f} s, '
                       f'{len(paths)} hochgeladen, {len(game_assets) - len(paths)} schon da)')
+    if full_zip:
+        # Before the release and latest.json: once they point to it, the full package is there.
+        started = time.time()
+        log(' .... ', f'Vollpaket -> {FULL_URL}')
+        digest = hashlib.sha256()
+        with open(full_zip, 'rb') as stream:
+            while piece := stream.read(8 << 20):
+                digest.update(piece)
+        with tempfile.TemporaryDirectory() as folder:
+            checksum = Path(folder) / (FULL_NAME + '.sha256')
+            checksum.write_text(f'{digest.hexdigest()}  {FULL_NAME}\n', encoding='ascii', newline='\n')
+            put_all(f'{FILES}/full', [(full_zip, FULL_NAME), checksum])
+        log('  OK  ', f'Vollpaket ({time.time() - started:.1f} s, {full_zip.stat().st_size / 2**30:.2f} GiB, '
+                      f'sha256 {digest.hexdigest()[:16]}…, ersetzt das vorige)')
     for repo, game_tag in github_game:
         started = time.time()
         log(' .... ', f'Spieldateien -> GitHub {repo} {game_tag}')
@@ -290,6 +317,7 @@ def main():
     ap.add_argument('release', type=Path, help='folder of make_release.py (latest.json, latest.json.sig, ...)')
     ap.add_argument('--gamefiles', type=Path, help='folder of make_game_patches.py')
     ap.add_argument('--gamefiles-url', action='append', default=[], help='as given to make_release.py, same order')
+    ap.add_argument('--full-zip', type=Path, help=f'the full package zip, published as {FULL_URL} (replaces the old one)')
     ap.add_argument('--publish', action='store_true', help='really upload (without it: dry run, only prints)')
     args = ap.parse_args()
     latest = json.loads((args.release / 'latest.json').read_text(encoding='utf-8'))
@@ -298,7 +326,7 @@ def main():
     if args.gamefiles and signed != args.gamefiles_url:
         log('FAILED', f'--gamefiles-url {args.gamefiles_url} weicht von der signierten Liste {signed} ab')
         return 1
-    return publish(args.release, latest, args.gamefiles_url, args.gamefiles, dry=not args.publish)
+    return publish(args.release, latest, args.gamefiles_url, args.gamefiles, dry=not args.publish, full_zip=args.full_zip)
 
 
 if __name__ == '__main__':

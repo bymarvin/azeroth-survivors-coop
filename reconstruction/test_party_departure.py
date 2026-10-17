@@ -545,6 +545,49 @@ class NativeWorldRestartTests(unittest.TestCase):
             self.assertFalse(bridge.native_connection_replaced(2, connection))
 
 
+class HostEndAfterRunTests(unittest.TestCase):
+    """User report 0.0.16: after the victory and the host's New hero, guest 2's channel ended (the relay closed the
+    tunnel: room phase "menu"). Once the run has ended the player sees an orderly end; the report is still sent,
+    marked after_run (that is how the relay cut was found)."""
+
+    def guest(self):
+        with patch.dict(os.environ, COOP_PLAYERS='2'):
+            output = io.StringIO()
+            guest = GroupOnlineBridge(output, 2, {1: Wire()})
+        return guest, output
+
+    def lost(self, guest):
+        error = ConnectionError('Co-op connection failed')
+        error.__cause__ = ConnectionError('Co-op peer disconnected')
+        guest.connection_ended(1, error)
+        return error
+
+    def test_host_gone_after_the_run_is_an_orderly_end(self):
+        for ended in ('victory_screen', 'new_hero', 'team_defeat'):
+            with self.subTest(ended=ended):
+                guest, output = self.guest()
+                guest.native_states = {1: (5, 47, 907, 0), 2: (5 if ended != 'team_defeat' else 4, 47, 907, 0)}
+                if ended == 'new_hero':
+                    guest.completed_players.add(2)  # completed_run_transition (action new_hero, phase 5).
+                if ended == 'team_defeat':
+                    guest.team_defeat.add(2)
+                error = self.lost(guest)
+                # Still reported (room_client), but marked: the player sees an orderly end, not an error.
+                self.assertIs(guest.connection_failure, error)
+                self.assertTrue(guest.connection_after_run)
+                self.assertTrue(guest.peer_finished and guest.stop_requested)
+                departed = [json.loads(l) for l in output.getvalue().splitlines() if '"host_departed"' in l]
+                self.assertEqual([(e['reason'], e['after_run']) for e in departed], [('ConnectionError', True)])
+
+    def test_host_lost_during_the_run_stays_a_failure(self):
+        guest, output = self.guest()
+        guest.native_states = {1: (1, 12, 40, 0), 2: (4, 12, 40, 0)}  # Down, the team still fighting.
+        error = self.lost(guest)
+        self.assertIs(guest.connection_failure, error)
+        self.assertFalse(guest.connection_after_run)
+        self.assertIn('"after_run": false', output.getvalue())
+
+
 if __name__ == '__main__':
     unittest.main()
 

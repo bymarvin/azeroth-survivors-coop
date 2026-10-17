@@ -1,6 +1,6 @@
 """'Next run' acceptance (0.0.16): four real launchers (RoomClient, local directory) play two runs in a row.
 
-  verify_next_run.py [--defeat]
+  verify_next_run.py [--defeat] [--relay]
 
 Run 1 (Elwynn, diagnostic autostart): boss victory and the host's "New hero" (--defeat: every player falls at
 once, team defeat). The host presses Next run: a new private room with the same host connection, the invitation
@@ -10,6 +10,10 @@ unlocked by run 1; --defeat: Elwynn again) through the native menu, the guests f
 replication, boss victory. Checked: invitations and confirmations, the same party and slots in a new room, map,
 replication, and the native saves: run 2 started with run 1's unlock and its victory unlocked the next map.
 Disposable candidate saves only (COOP_CANDIDATE_HOME); every log stays in analysis/room-player-N[-run2].jsonl.
+--relay: every guest connects through a local relay/server.py (throwaway certificate, as coop-lab/server/
+test_us_lobby.py): the host publishes an unreachable address, the guests' direct attempt fails. After New hero the
+host waits RELAY_HOLD s (more than one relay re-check of the room) before Next run: in 0.0.16 the directory's
+"menu" phase made the relay close every tunnel there (user report, guest 2 over the EU relay).
 """
 import argparse
 import json
@@ -25,9 +29,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNS = ('', '-run2')
+RELAY_PORT = 47771      # The routes' relay port (relay/routing.Routes default).
+RELAY_HOLD = 20         # > AUTH_SECONDS (15) of relay/server.py: a closed tunnel would show here.
+UNREACHABLE = '192.0.2.1'  # TEST-NET-1: the guests' direct attempt fails, the relay takes over.
 
 
-def member(url, number, pipe, defeat):
+def member(url, number, pipe, defeat, relay=False):
     import group_online
     import native_probe
     from native_probe import HURT, MAP_SELECT, q
@@ -112,6 +119,14 @@ def member(url, number, pipe, defeat):
 
     native_probe.run = bounded_run
     client = RoomClient(url, diagnostic_autostart=True, isolated_profile=True)
+    routes = []  # Route evidence of every run: direct_connected / relay_connected (network diagnostics).
+    network_event = client.network_event
+
+    def observed_network(**event):
+        if event.get('event') in ('direct_connected', 'relay_connected', 'direct_failed'):
+            routes.append(event['event'])
+        network_event(**event)
+    client.network_event = observed_network
     if number != 1:
         # The directory gives slots in join order; the disposable saves are per slot (player-N): join 2, 3, 4.
         join_next_run = client.join_next_run
@@ -125,7 +140,7 @@ def member(url, number, pipe, defeat):
         if number == 1:
             with socket.create_server(('127.0.0.1', 0)) as available:
                 port = available.getsockname()[1]
-            client.create('Next run test', 'Host', False, '127.0.0.1', port, 'eu')
+            client.create('Next run test', 'Host', False, UNREACHABLE if relay else '127.0.0.1', port, 'eu')
             pipe.send(client.room['id'])
             assert pipe.recv() == 'start'
             client.action('start')
@@ -139,6 +154,15 @@ def member(url, number, pipe, defeat):
             while not client.state()['next_run']['available'] and not client.error and time.monotonic() < deadline:
                 time.sleep(.2)
             assert client.error is None and client.state()['next_run']['available'], f'Run 1 did not end: {client.error}'
+            held = 0
+            if relay:
+                # Every guest must still be connected after the relay re-checked the room (New hero is over).
+                started = time.monotonic()
+                time.sleep(RELAY_HOLD)
+                held = time.monotonic() - started
+                bridge = client.bridge
+                assert bridge is not None and not bridge.departed, f'Guests left during the hold: {getattr(bridge, "departed", None)}'
+                assert all(not c.closed and c.error is None for c in bridge.channels.values()), 'A relay channel ended'
             client.log_suffix = RUNS[1]
             client.action('next_run')
         else:
@@ -154,7 +178,8 @@ def member(url, number, pipe, defeat):
             time.sleep(.2)
         assert client.worker and not client.worker.is_alive(), 'Run 2 timed out'
         assert client.error is None, client.error
-        pipe.send(json.dumps(dict(passed=True, rooms=rooms, slot=runs[1].number)))
+        pipe.send(json.dumps(dict(passed=True, rooms=rooms, slot=runs[1].number, routes=routes,
+                                  held=held if number == 1 else 0)))
     except Exception as error:
         pipe.send(json.dumps(dict(passed=False, error=str(error))))
         raise
@@ -167,7 +192,7 @@ def rows(number, run):
     return [json.loads(line) for line in (ROOT / f'analysis/room-player-{number}{RUNS[run]}.jsonl').read_text().splitlines()]
 
 
-def verify(defeat, results):
+def verify(defeat, results, relay=False):
     """Both runs from the launchers' logs and the native saves (four players)."""
     first, second = ([rows(n, run) for n in range(1, 5)] for run in (0, 1))
     assert len({r['rooms'][0] for r in results}) == 1 and len({r['rooms'][1] for r in results}) == 1, results
@@ -215,13 +240,50 @@ def verify(defeat, results):
         assert complete and all(complete[-1].get(k) for k in ('native_unlock_reload_verified', 'expected_unlock_verified',
                                                                'newly_awarded_progression_verified')), (number, complete)
         print(f'[  OK  ] unlock_verified player {number} (class {cls}: map {start + 1} open in the reloaded save)', flush=True)
-    return dict(next_run='passed', variant='team_defeat' if defeat else 'victory', run2_zone=zone,
+    if relay:
+        for number, result in enumerate(results[1:], 2):
+            # Both runs through the relay, never directly.
+            assert result['routes'].count('relay_connected') >= 2 and 'direct_connected' not in result['routes'], \
+                (number, result['routes'])
+        assert results[0]['held'] >= RELAY_HOLD, results[0]
+        for number, events in enumerate(first, 1):
+            # Run 1 ends through Next run only: no channel failed while the relay re-checked the room.
+            lost = [(e['event'], e.get('reason')) for e in events if e['event'] == 'transport_failure' or
+                    e['event'] in ('host_departed', 'guest_departed') and e.get('reason') != 'left']
+            assert not lost, (number, lost)
+    return dict(next_run='passed', variant='team_defeat' if defeat else 'victory', run2_zone=zone, relay=relay,
                 rooms=results[0]['rooms'], world_deliveries=summaries[0]['world_delivered'])
+
+
+def start_relay(directory_port):
+    """The unchanged relay/server.py on the routes' port, with a throwaway certificate trusted only here."""
+    import tempfile
+    sys.path.insert(0, str(ROOT / 'coop-lab/server'))
+    from test_us_lobby import make_certificate
+    work = Path(tempfile.mkdtemp(prefix='next-run-relay-'))
+    make_certificate(work)
+    os.environ['SSL_CERT_FILE'] = str(work / 'ca.pem')  # Inherited by the four launchers (relay client: default context).
+    with socket.socket() as probe:
+        if probe.connect_ex(('127.0.0.1', RELAY_PORT)) == 0:
+            raise SystemExit(f'Port {RELAY_PORT} is in use; the relay test needs it')
+    relay = subprocess.Popen([sys.executable, '-E', '-s', str(ROOT / 'relay/server.py'), '--bind', '127.0.0.1',
+                              '--port', str(RELAY_PORT), '--directory', f'http://127.0.0.1:{directory_port}',
+                              '--cert', str(work / 'fullchain.pem'), '--key', str(work / 'key.pem')],
+                             cwd=ROOT / 'relay', stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    for _ in range(100):
+        try:
+            with socket.create_connection(('127.0.0.1', RELAY_PORT), 1):
+                return relay
+        except OSError:
+            time.sleep(.1)
+    relay.terminate()
+    raise SystemExit('The local relay did not start')
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--defeat', action='store_true', help='run 1 ends in a team defeat instead of a victory')
+    parser.add_argument('--relay', action='store_true', help='guests connect through a local relay/server.py')
     args = parser.parse_args()
     import native_probe
     from lobby_server import server
@@ -229,11 +291,15 @@ def main():
     app = server(('127.0.0.1', 0), collected_logs=(native_probe._candidate_home or ROOT / 'coop-lab') / 'collected-logs')
     threading.Thread(target=app.serve_forever, daemon=True).start()
     processes, pipes = [], []
+    relay = None
     try:
         url = f'http://127.0.0.1:{app.server_port}'
+        if args.relay:
+            relay = start_relay(app.server_port)
+            url = f'http://localhost:{app.server_port}'  # The routes take the relay host from the directory URL.
         for number in range(1, 5):
             parent, child = mp.Pipe()
-            process = mp.Process(target=member, args=(url, number, child, args.defeat))
+            process = mp.Process(target=member, args=(url, number, child, args.defeat, args.relay))
             process.start()
             processes.append(process)
             pipes.append(parent)
@@ -252,8 +318,11 @@ def main():
         for process in processes:
             process.join(15)
             assert process.exitcode == 0
-        print(json.dumps(verify(args.defeat, results)), flush=True)
+        print(json.dumps(verify(args.defeat, results, args.relay)), flush=True)
     finally:
+        if relay is not None:
+            relay.terminate()
+            relay.wait(10)
         for process in processes:
             if process.is_alive():
                 process.terminate()

@@ -1,5 +1,6 @@
 """Directory membership and local shutdown races, without launching the game."""
 import tempfile
+from pathlib import Path
 import os
 import threading
 import unittest
@@ -173,6 +174,53 @@ class RoomLifecycleTests(unittest.TestCase):
         self.assertIsNone(self.client.error)
         self.assertIsNone(self.client.membership)
         self.assertNotIn(self.room_id, self.app.rooms.rooms)
+
+    def lost_link_session(self, after_run):
+        """play() with a game whose host link failed; returns the report diagnostics (or None)."""
+        self.client.membership = self.host
+        room = self.start()
+        room['connection'] = dict(port=1)
+        self.client.room = room
+        reports = []
+        save = SimpleNamespace(folder='disposable', commit=lambda: None, close=lambda: None)
+
+        class Bridge:
+            def __init__(self, output):
+                self.counts = {}
+            def record(self, **event):
+                pass
+            def diagnostic_summary(self):
+                return dict(states={})
+
+        def run(seconds, players, bridge, **kwargs):
+            bridge.connection_failure = ConnectionError('Co-op connection failed')
+            bridge.connection_after_run = after_run
+
+        def upload_report(directory, permit, log, gameplay, framework, private_values=(), diagnostics=None):
+            reports.append(dict(log=Path(log), diagnostics=diagnostics))
+            return 'Crash report saved locally; this lobby does not support uploads.'
+        modules = dict(group_online=SimpleNamespace(GroupOnlineBridge=Bridge),
+                       native_guest_combat=SimpleNamespace(NativeCombatBridge=Bridge),
+                       party_menu=SimpleNamespace(PartyMenu=type('PartyMenu', (), {})),
+                       native_probe=SimpleNamespace(ACTIVE_HASH=self.client.build, run=run),
+                       personal_save=SimpleNamespace(PersonalSave=lambda path: save),
+                       crash_reports=SimpleNamespace(upload_report=upload_report))
+        with patch.dict(os.environ, {}, clear=True), patch.dict('sys.modules', modules), patch.object(
+                self.client, 'check_compatibility', return_value={'sha256': self.client.build}):
+            self.client.play(room)
+        return reports
+
+    def test_link_lost_after_the_run_is_reported_but_not_shown_as_an_error(self):
+        reports = self.lost_link_session(after_run=True)
+        self.assertIsNone(self.client.error)  # No error look: the room browser shows the status only.
+        self.assertEqual(len(reports), 1)
+        self.assertEqual(reports[0]['diagnostics'], dict(states={}, after_run=True))
+        self.assertIn('lost after the finished run', reports[0]['log'].read_text(encoding='utf-8'))
+
+    def test_link_lost_during_the_run_is_an_error_and_a_report(self):
+        reports = self.lost_link_session(after_run=False)
+        self.assertIn('Game session failed: Co-op host connection lost', self.client.error)
+        self.assertEqual(reports[0]['diagnostics'], dict(states={}))
 
     def test_browser_shutdown_waits_for_worker_before_directory_cleanup(self):
         self.client.join('Guest', self.room_id)

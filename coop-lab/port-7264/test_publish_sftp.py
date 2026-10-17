@@ -150,6 +150,24 @@ def run_client(client):
         return 'latest.json replaced by rename, oldest game folder and release removed, 2 kept'
     test(f'{which} sftp: newer releases and cleanup', newer_and_cleanup)
 
+    def full_zip():
+        import hashlib
+        import zipfile
+        for version, tag, size in (('0.0.17', 't4', 3 << 20), ('0.0.18', 't5', 1 << 20)):
+            out, game = release(root, version, big)
+            package = root / f'package {version}.zip'
+            with zipfile.ZipFile(package, 'w') as z:
+                z.writestr('Start-Coop.cmd', version * (size // len(version)))
+            assert pub.publish(out, json.loads((out / 'latest.json').read_text()), game_url(tag), game,
+                               runner=LocalSftp(client), full_zip=package) == 0
+            served = remote / 'full' / pub.FULL_NAME
+            assert served.read_bytes() == package.read_bytes(), version  # The newest replaced the previous one.
+            expected = hashlib.sha256(package.read_bytes()).hexdigest() + '  ' + pub.FULL_NAME + chr(10)
+            assert (remote / 'full' / (pub.FULL_NAME + '.sha256')).read_text() == expected
+        assert sorted(p.name for p in (remote / 'full').iterdir()) == [pub.FULL_NAME, pub.FULL_NAME + '.sha256']
+        return 'full zip under the fixed name, a newer one replaces it (rename), .sha256 next to it, no .part left'
+    test(f'{which} sftp: full package zip', full_zip)
+
     shutil.rmtree(root, ignore_errors=True)
 
 

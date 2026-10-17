@@ -96,6 +96,7 @@ class GroupOnlineBridge(OnlineBridge):
         self.enemy_churn_due = 0
 
         self.connection_failure = None
+        self.connection_after_run = False
         self.last_diagnostic = self.last_poll = time.monotonic()
         super().__init__(output, number, next(iter(channels.values())))
 
@@ -178,14 +179,25 @@ class GroupOnlineBridge(OnlineBridge):
             from coop_transport import failure_details
             self.record_network('transport_failure', peer=peer, errors=failure_details(reason),
                                 **self.link_state(self.channels.get(peer)))
+            # After giving up, the host closing is expected. Once this guest's run has ended as planned, a lost
+            # link is still reported (that is how the relay cut after New hero was found), but the player sees an
+            # orderly end, not an error (room_client: connection_after_run).
             if self.number != 1 and not self.self_surrendered:
-                self.connection_failure = reason  # After giving up, the host closing is expected.
+                self.connection_failure = reason
+                self.connection_after_run = self.run_finished_here()
             reason = type(reason).__name__
         if self.number == 1:
             self.remove_guest(peer, reason)
         else:
             self.peer_finished = self.stop_requested = True
-            self.record(event='host_departed', reason=reason, **self.link_state(self.channels.get(peer)))
+            self.record(event='host_departed', reason=reason, after_run=self.run_finished_here(),
+                        **self.link_state(self.channels.get(peer)))
+
+    def run_finished_here(self):
+        """This player's run is over: victory screen, New hero/Again after it, team defeat or the party's give-up."""
+        number = self.number
+        return (self.native_states.get(number, (0,))[0] == 5 or number in self.completed_players
+                or number in self.team_defeat or bool(getattr(self, 'party_surrender', False)))
 
     def native_exited(self, client, code):
         # Each network process owns one game; RoomClient sends goodbye after

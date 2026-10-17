@@ -37,5 +37,7 @@ updater are not code-signed: choose "More info" -> "Run anyway". Every download 
 is checked against a signed release description and SHA-256 hashes.
 
 ## Full package
-Your game files are too old for an automatic update. Get the full package from the link in the Discord
-release thread, unpack it and start Start-Coop.cmd.
+The complete game folder of the newest release as one zip (about 1.4 GB), always at the same address:
+**https://azsurvivors.duckdns.org/full/Azeroth-Survivors-Together.zip**
+(SHA-256 next to it: `Azeroth-Survivors-Together.zip.sha256`). Unpack it into a folder of your own and start
+Start-Coop.cmd. Use it when your game files are too old for an automatic update, or instead of the installer.

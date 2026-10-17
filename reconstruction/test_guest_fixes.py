@@ -2,6 +2,7 @@
 import io
 import json
 import os
+import re
 import struct
 import time
 from types import SimpleNamespace
@@ -855,7 +856,11 @@ class VersionTests(unittest.TestCase):
 
     def test_framework_version_names_the_hotfix(self):
         version = (Path(native.ROOT) / 'COOP-VERSION.txt').read_text(encoding='utf-8').strip()
-        self.assertEqual(version, '0.0.16-community+game-7264d50b')
+        # Format, not a fixed number: the file is bumped with every hotfix (0.0.N-community+game-<8 hex>).
+        pattern = r'0\.0\.[1-9][0-9]*-community\+game-[0-9a-f]{8}'
+        self.assertIsNotNone(re.fullmatch(pattern, version), version)
+        for wrong in ('0.0.17', '0.0.17-community', '0.0.17-community+game-7264D50B', '0.0.17-community+game-7264d50b '):
+            self.assertIsNone(re.fullmatch(pattern, wrong), wrong)
         self.assertLessEqual(len(version), 32)  # Lobby server field limit.
 
 

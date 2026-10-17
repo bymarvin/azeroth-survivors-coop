@@ -257,8 +257,7 @@ def recycle_distance_code(table, guests, position, scratch, temp, select, resume
 
 def melee_packet(attacker, target, damage):
     """Exact noncritical 0x14a layout from native writer RVA 0x5443aa0."""
-    if not 0 <= damage <= 0xFFFFFFFF:
-        raise ValueError('Invalid melee damage')
+    damage = min(max(0, damage), 0xFFFFFFFF)  # A u32 field: saturates instead of ending the run.
     return (struct.pack('<I', 2) + packed_guid(attacker) + packed_guid(target) +
             struct.pack('<IBIf7I', damage, 1, 0, float(damage), damage, 0, 0, 1, 0, 0, 0))
 
@@ -461,11 +460,37 @@ def native_enemy_array(client, game):
     return data, now
 
 
-def enemy_pose(fields, now):
-    """(hp, interpolated pose) of one living record; fields as ENEMY_RECORD without dead/guid."""
+# Single broken entries in game memory (an enemy record with NaN/inf while it dies or its slot is reused, a
+# nonfinite value in one hit) are skipped and logged, never the end of the run (user: "no limit, play as far as
+# you can"). Wrong layouts or changed instructions still stop; peer (wire) input stays strict.
+NATIVE_SKIPS = dict(report=None, last={})
+
+
+def finite_text(values):
+    """Floats for the JSON log: NaN/inf as text (json would write invalid NaN tokens)."""
+    return [v if not isinstance(v, float) or math.isfinite(v) else repr(v) for v in values]
+
+
+def note_native_skip(event, key=None, **details):
+    """Log a skipped native entry once per (event, key) and minute; the bridge sets the reporter (record)."""
+    now, last = time.monotonic(), NATIVE_SKIPS['last']
+    if now - last.get((event, key), float('-inf')) < 60:
+        return
+    if len(last) >= 4096:
+        for old in [k for k, t in last.items() if now - t >= 60]:
+            del last[old]
+    last[(event, key)] = now
+    report = NATIVE_SKIPS['report']
+    if report is not None:
+        report(event=event, key=key, **details)
+
+
+def enemy_pose(fields, now, guid=None):
+    """(hp, interpolated pose) of one living record, or None if it holds NaN/inf (skipped, logged)."""
     hp, x0, y0, z0, x1, y1, z1, began, duration = fields
     if not all(map(math.isfinite, (now, *fields))):
-        raise ValueError('Nonfinite native enemy state')
+        note_native_skip('enemy_state_nonfinite', guid, clock=finite_text([now])[0], fields=finite_text(fields))
+        return None
     t = min(1, max(0, (now - began) / duration)) if duration > 0 else 1
     return hp, (x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, z0 + (z1 - z0) * t)
 
@@ -478,7 +503,9 @@ def parse_native_enemies(data, now):
         dead, guid, *fields = unpack(data, offset)
         if dead == 1:
             continue
-        result.append((guid, *enemy_pose(fields, now)))
+        pose = enemy_pose(fields, now, guid)
+        if pose is not None:  # A record with NaN/inf is treated as not there.
+            result.append((guid, *pose))
     return result
 
 
@@ -501,7 +528,7 @@ def native_enemy(client, game, guid):
         if offset % stride == 0:
             dead, _, *fields = record.unpack_from(data, offset + 0x68)
             if dead != 1:
-                return enemy_pose(fields, now)
+                return enemy_pose(fields, now, guid)  # None for NaN/inf: as if not there.
         found = data.find(needle, found + 1)
     return None
 
@@ -684,6 +711,7 @@ class Bridge:
         self.guest_target = None
         self.host_clock = 0.0
         self.started = time.monotonic()
+        NATIVE_SKIPS['report'] = self.record  # Skipped native entries are logged through this bridge.
         self.counts = dict(created=0, relayed=0, native_moves=0, unsupported_moves=0)
         self.counts.update(world_captured=0, world_delivered=0, guest_suppressed=0)
         self.counts.update(serializer_stops=0, batch_reads=0)
@@ -1596,7 +1624,8 @@ class Bridge:
         game = client.server + 0x10
         maximum = struct.unpack('<f', client.memory(game + game_field(0x4F8), 4))[0]
         if not math.isfinite(maximum) or not 1 <= maximum <= MAX_ENEMY_HP:
-            raise ValueError('Invalid revival health')
+            note_native_skip('revival_health_invalid', number, maximum=finite_text([maximum])[0])
+            return False  # Tried again next batch.
         health = max(1, maximum * .5)
         before = self.native_states[number][1:]
         client.put(game + game_field(0x4A0), struct.pack('<f', health))
@@ -1669,7 +1698,8 @@ class Bridge:
                 phase = client.memory(game + game_field(0x8BF), 1)[0]
                 client.put(game + game_field(0x85C), current_clock)
                 if not math.isfinite(after):
-                    raise RuntimeError('Invalid guest health after native damage')
+                    note_native_skip('guest_health_nonfinite', number, before=finite_text([before])[0])
+                    return
                 metrics = self.hit_metrics.setdefault((number, kind), dict(incoming=0, applied=0, obsolete=0, high_water=0))
                 metrics['applied'] += 1
                 metrics['max_wait'] = max(metrics.get('max_wait', 0), time.monotonic() - arrived)
@@ -1734,7 +1764,10 @@ class Bridge:
             remaining = next((hp for guid, hp, _ in native_enemies(client, game) if guid == target), 0)
             dealt = before - remaining
             if not math.isfinite(dealt) or dealt <= 0:
-                raise RuntimeError('Guest native attack did not reduce target health')
+                # The target died, vanished or holds NaN meanwhile: nothing to show for this swing.
+                note_native_skip('guest_attack_without_effect', target, before=finite_text([before])[0],
+                                 after=finite_text([remaining])[0])
+                return
             for recipient, attacker in ((1, 0xFF0102), (2, SELF)):
                 self.attack_packets[recipient].append((0x14A, melee_packet(attacker, target, int(dealt))))
             self.record(event='guest_damage', target=target, before=before, after=remaining, damage=dealt,

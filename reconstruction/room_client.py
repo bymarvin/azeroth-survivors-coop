@@ -82,6 +82,8 @@ NO_DIRECT_OFFER = '127.0.0.1'
 # "Next run": seconds the host waits for confirmations before closing the game, and for the
 # confirmed guests to rejoin before it starts without the missing ones.
 NEXT_RUN_CONFIRM = 10
+# The link to the host closed after this player's run had ended (host left, or the line/relay dropped).
+AFTER_RUN_STATUS = 'Run finished; the connection to the host closed. Your progress is saved.'
 NEXT_RUN_WAIT = 120
 
 
@@ -289,9 +291,11 @@ class RoomClient:
                 current = hashlib.sha256(Path(os.environ.get('COOP_EXECUTABLE', ROOT / 'AzerothSurvivors.exe')).read_bytes()).hexdigest()
                 if current != self.build or self.room.get('build', self.build) != current:
                     raise ValueError('Game build changed or differs from the host. Leave and rejoin with the matching executable.')
-            if self.room_detached and action in ('keep_fighting', 'new_hero'):
-                # The listing is gone; the decision travels over the game channel
-                # (host_action), which is what guests apply. No directory call.
+            if (self.room_detached and action == 'keep_fighting') or action == 'new_hero':
+                # The decision travels over the game channel (host_action), which is what guests apply.
+                # New hero is never told to the directory: its "menu" phase makes the relay close every
+                # tunnel within 15 s (relay/server.py monitor), cutting relay guests off after the run
+                # and before Next run. The listing stays in "victory", which the relay keeps open.
                 if not self.bridge:
                     raise ValueError('The game has already ended.')
                 self.queue_game_command(8 if action == 'keep_fighting' else 9)
@@ -498,7 +502,9 @@ class RoomClient:
                         event = self.events.get_nowait()
                         if self.room['slot'] != 1:
                             continue
-                        desired = 'victory' if event == 'victory' else 'keep_fighting' if event == 8 else 'new_hero'
+                        if event == 9:
+                            continue  # New hero stays off the directory (see action): the relay keeps the tunnels.
+                        desired = 'victory' if event == 'victory' else 'keep_fighting'
                         required = 'playing' if event == 'victory' else 'victory'
                         if self.room['phase'] == required:
                             try:
@@ -556,6 +562,7 @@ class RoomClient:
         channels = {}
         save = None
         crash_log = None
+        after_run = None  # A link lost after the finished run: reported, never shown as an error.
         gameplay_log = None
         bridge = None
         diagnostic_events = deque(maxlen=96)
@@ -627,7 +634,7 @@ class RoomClient:
                             print(f'Completion diagnostics could not be saved ({type(error).__name__}); gameplay continues.',
                                   file=sys.stderr, flush=True)
                     if event.get('event') == 'host_departed':
-                        owner.status = 'The host ended the game.'
+                        owner.status = (AFTER_RUN_STATUS if event.get('after_run') else 'The host ended the game.')
                     if event.get('event') == 'guest_departed':
                         owner.status = f'Player {event.get("player")} left. The remaining party can keep playing.'
                     if event.get('event') == 'party_restart_requires_lobby':
@@ -637,7 +644,7 @@ class RoomClient:
                         owner.status = 'Choose your class and gear. Enter the game after the host confirms the map.'
                     if (event.get('event') == 'native_state' and event.get('player') == number
                             and not owner.cancel.is_set() and not owner.room_detached
-                            and not owner.status.startswith('The host ended')):
+                            and not owner.status.startswith(('The host ended', AFTER_RUN_STATUS))):
                         owner.status = 'Playing.' if event.get('phase') == 1 else 'Game connected.'
                     if event.get('event') == 'native_state' and event.get('player') == 1 and event.get('phase') == 5:
                         owner.game_event('victory')
@@ -688,8 +695,11 @@ class RoomClient:
                 try:
                     try:
                         run(86400, 1, bridge, player_numbers=[number])
-                        if getattr(bridge, 'connection_failure', None) is not None:
-                            raise ConnectionError('Co-op host connection lost; local cleanup completed') from bridge.connection_failure
+                        failure = getattr(bridge, 'connection_failure', None)
+                        if failure is not None and getattr(bridge, 'connection_after_run', False):
+                            after_run = failure
+                        elif failure is not None:
+                            raise ConnectionError('Co-op host connection lost; local cleanup completed') from failure
                     except TimeoutError as error:
                         # The game has already closed and shutdown_drain_finished holds
                         # the leftover work; ending a played session is not a crash.
@@ -738,22 +748,30 @@ class RoomClient:
                     except Exception as error:
                         self.profile.log_exception(error, room.get('slot', 1), 'connection cleanup')
             self.bridge = None
+            if after_run is not None and not crash_log:
+                try:
+                    raise ConnectionError('Co-op connection lost after the finished run; progress saved') from after_run
+                except ConnectionError as error:
+                    crash_log = self.profile.log_exception(error, room.get('slot', 1), 'after the run', quiet=True)
             if crash_log:
                 from crash_reports import upload_report
+                diagnostics = bridge.diagnostic_summary() if bridge is not None else None
+                if after_run is not None:
+                    diagnostics = dict(diagnostics or {}, after_run=True)  # Marked: the run had already ended.
                 try:
                     report_status = upload_report(self.directory, upload_permit, crash_log,
-                        gameplay_log, framework, private_values,
-                        diagnostics=bridge.diagnostic_summary() if bridge is not None else None)
+                        gameplay_log, framework, private_values, diagnostics=diagnostics)
                 except Exception as error:
                     report_status = f'Crash report upload failed ({type(error).__name__}); local logs retained.'
-                print(report_status, file=sys.stderr, flush=True)
+                if after_run is None:  # After the run: reported quietly, no error look for the player.
+                    print(report_status, file=sys.stderr, flush=True)
                 if self.error:
                     self.error += ' ' + report_status
             next_room = self.next_room if room.get('slot') == 1 else None
             if next_room and (next_room['expected'] is None or crash_log or self.stopped.is_set()):
                 self.drop_next_room()  # The old game did not close for the next run.
                 next_room = None
-            status = (self.status if self.status.startswith('The host ended') or self.next_invite else
+            status = (self.status if self.status.startswith(('The host ended', AFTER_RUN_STATUS)) or self.next_invite else
                       'The game session ended. Join or create a room to play again.')
             try:
                 self.leave_membership(room['id'], status, keep_mapping=bool(next_room))
@@ -795,7 +813,8 @@ class RoomClient:
                 status += ' ' + self.firewall_hint
             next_run = dict(available=bool(room and room['slot'] == 1 and bridge is not None and not self.next_room
                                            and hasattr(bridge, 'offer_next_run') and bridge.run_over()),
-                            preparing=bool(self.next_room), invited=bool(self.next_invite))
+                            preparing=bool(self.next_room), invited=bool(self.next_invite),
+                            run_over=bool(bridge is not None and hasattr(bridge, 'run_finished_here') and bridge.run_finished_here()))
             return dict(room=room, status=status, error=self.error, guest_entry=entry, routes=routes, latency=latency,
                         connection_error=self.routes.error if self.routes else None, next_run=next_run)
 

@@ -144,6 +144,33 @@ def main():
         return 'gh not logged in / too little space on the server: nothing uploaded'
     test('Preflight refuses before uploading', refused)
 
+    def full_zip():
+        import zipfile
+        out, game = folders()
+        package = out.parent / 'full.zip'
+        with zipfile.ZipFile(package, 'w') as z:
+            z.writestr('Start-Coop.cmd', 'x' * 200000)
+        server = {'/files': {'game-7264d50b': None}, '/files/game-7264d50b': {}}
+        fake = Fake(server, free=1 << 30, game_releases={('bymarvin/azeroth-survivors-gamefiles', 'game-7264d50b'): {}})
+        assert pub.publish(out, LATEST, [GITHUB, SERVER], game, runner=fake, full_zip=package) == 0
+        flat = [(kind, ' '.join(cmd)) for kind, cmd in fake.log]
+        full = next(i for i, (k, c) in enumerate(flat) if k == 'sftp' and pub.FULL_NAME + '.part' in c)
+        create = next(i for i, (k, c) in enumerate(flat) if c.startswith('release create v0.0.14'))
+        game_up = next(i for i, (k, c) in enumerate(flat) if 'game-7264d50b/' in c and 'put' in c)
+        assert game_up < full < create, flat  # Game files, then the full zip, then release and latest.json.
+        line = flat[full][1]
+        assert f'rename "/files/full/{pub.FULL_NAME}.part" "/files/full/{pub.FULL_NAME}"' in line
+        assert line.index(pub.FULL_NAME + '.sha256') > line.index(f'"/files/full/{pub.FULL_NAME}"')
+        size = package.stat().st_size
+        fake = Fake({'/files': {}}, free=size + 4096)  # Room for the release but not for the zip on top.
+        assert pub.publish(out, LATEST, [GITHUB, SERVER], game, runner=fake, full_zip=package) == 1 and not fake.log
+        (out.parent / 'not.zip').write_bytes(b'nope')
+        fake = Fake({'/files': {}}, free=1 << 30)
+        assert pub.publish(out, LATEST, [GITHUB, SERVER], game, runner=fake, full_zip=out.parent / 'not.zip') == 1
+        assert pub.FULL_URL == 'https://azsurvivors.duckdns.org/full/Azeroth-Survivors-Together.zip'
+        return 'zip after the game files, before the release; .part -> rename; space includes the zip; not a zip refused'
+    test('Full package zip', full_zip)
+
     def parsing():
         assert pub.release_tag('0.0.14-community+game-7264d50b') == 'v0.0.14'
         server, github = pub.sources([GITHUB, SERVER])

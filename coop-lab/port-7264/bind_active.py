@@ -17,7 +17,8 @@ sys.path.insert(0, str(ROOT / 'reconstruction'))
 REQUIRED = {'concurrent_menus', 'class_gear_selection', 'host_map', 'four_player_movement', 'four_player_combat',
             'bosses', 'shared_xp', 'shared_gold', 'independent_talents', 'independent_loot', 'pause_resume',
             'revival', 'saves', 'guest_departure', 'host_shutdown', 'victory_keep_fighting', 'victory_new_hero',
-            'map_progression', 'druid_forms', 'surrender', 'fall_revival_unlock', 'next_run', 'next_run_after_defeat'}
+            'map_progression', 'druid_forms', 'surrender', 'fall_revival_unlock', 'next_run', 'next_run_after_defeat',
+            'next_run_relay', 'victory_new_hero_relay'}
 
 
 def log(tag, text):
