@@ -146,3 +146,45 @@ sichert die SHA-256 in der signierten Datei.
   - Ältere exes (1/2) holen sich wegen `min_updater 3` vorher Updater 3.
 - `coop_autoupdate.py` lädt die exe nur noch, wenn sie im Ordner fehlt (Rückfall). Eine vorhandene exe aktualisiert
   sich selbst.
+
+## Updater 4, Web-Installer, eigener Server, --publish
+- **Quellen der Spieldateien** (`--gamefiles-url` mehrfach, signiert): Der Updater versucht sie der Reihe nach. Eine
+  Seite, 404/410/429, ein Abbruch (Teil-Download läuft weiter) oder ein falscher SHA-256 führen zur nächsten Quelle.
+  - Entscheidung des Users (17.10.2026): „my server should handle the traffic“.
+    - Erste Quelle ist `https://azsurvivors.duckdns.org/game-<hash>/` für alle Spieldateien (Patches und Vollassets
+      inkl. `patch.MPQ`).
+    - Das GitHub-Gamefiles-Repo ist nur Rückfall bei Ausfall oder 404.
+    - Aufruf: `--gamefiles-url https://azsurvivors.duckdns.org/game-<hash>/ --gamefiles-url
+      https://github.com/bymarvin/azeroth-survivors-gamefiles/releases/download/game-<hash>/`.
+    - Kosten: Server-Egress etwa 0,12 $/GB; eine Neuinstallation sind etwa 1,4 GB, also etwa 0,17 $. Patches sind
+      wenige MB.
+  - Mod, Runtime und Updater-exe bleiben im GitHub-Release, wie gehabt.
+  - Die Reihenfolge steht in der signierten URL-Liste und lässt sich mit jedem Release ändern.
+- **Assets für Neuinstallationen:**
+  - `make_game_patches.py --full-for-all --full-max-mb 2047`: Vollassets für jede Spieldatei.
+  - Vollassets packt `xz.exe` (aus Git: `C:\Program Files\Git\mingw64\bin`) mit `-9`, parallelen 64-MiB-Blöcken
+    und `--threads=+N`. Die Bytes hängen nicht von der Thread-Anzahl ab (`test_xz_mt.py`).
+    - `patch.MPQ`: 47 s statt 550 s, 483,7 statt 478,3 MiB, Spitze ~9,6 GB RAM bei 13 Threads.
+    - Ohne xz.exe: einthreadig mit lzma, mit Warnung im Log.
+    - Der Updater liest beides (ein normaler xz-Stream).
+  - MPQ-Archive, die xz nicht verkleinert, gehen als `raw` (die Datei selbst), z. B. `patch.MPQ` mit 1,34 GB.
+  - Mehrere Quellen oder raw verlangen `--min-updater 4` (make_release prüft das).
+- **Web-Installer** (`coop-lab/installer`):
+  - Bauen: `cargo build --release`. Ergebnis ist `azsurvivors-installer.exe`, hochladen als
+    `Azeroth-Survivors-Together-Installer.exe`.
+  - Er prüft latest.json mit Ed25519. Die Schlüssel kommen aus dem eingebetteten `self_update.py`, eine Quelle für
+    beide.
+  - Er lädt das Runtime-Archiv von GitHub (SHA-geprüft, fortsetzbar) und entpackt es mit Windows-`tar.exe`.
+  - Danach installiert der eingebettete Updater 4 alles Weitere.
+  - Bei einer vorhandenen Installation läuft deren Updater-exe (Update-Modus).
+  - Downloads laufen über Windows-`curl.exe` aus System32.
+  - Ein Schlüsselwechsel braucht einen neuen Installer.
+  - Probe: `coop-lab/installer/e2e_installer.py` mit lokalen Servern, Testschlüssel und Test-Builds.
+- **Veröffentlichen:** `make_release.py … --publish` (Probelauf: `--publish-dry-run`).
+  - Vorprüfung: gh-Anmeldung, SFTP und der Platz nach dem Aufräumen.
+  - Reihenfolge: Spieldateien zuerst auf alle Quellen (Server per SFTP als `azdeploy`, GitHub-Gamefiles-Repo), dann
+    das GitHub-Release (neu als Entwurf, dann Latest; vorhanden: `latest.json` zuletzt), dann der Spiegel auf dem
+    Server (`/releases/<tag>/`, `latest.json` zuletzt).
+  - Aufräumen: auf dem Server bleiben die letzten 2 Spielversionen und Releases, nach `/files/published.json`.
+  - Schlüssel: `%USERPROFILE%\.ssh\azsurvivors_upload`.
+  - Server einrichten: `coop-lab/server/setup_server.sh`.

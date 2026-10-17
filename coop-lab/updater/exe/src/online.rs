@@ -25,7 +25,7 @@ static GAME_PATCH: &str = include_str!("../../game_patch.py");
 static UPDATER_V2: &str = include_str!("../../updater_v2.py");
 const UPDATER_VERSION: &str = match option_env!("COOP_UPDATER_VERSION") {
     Some(version) => version,
-    None => "3",
+    None => "4",
 };
 // Test builds only: an additional trusted key for signed test releases.
 const TEST_KEY: Option<&str> = option_env!("COOP_UPDATER_TEST_KEY");

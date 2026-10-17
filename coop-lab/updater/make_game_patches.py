@@ -6,7 +6,7 @@
 For every game file (AzerothSurvivors.exe, Data/*) of the target:
 - one patch per old folder whose copy differs (old SHA -> new SHA), made with
   azpatch-gen (bsdiff) and packed by game_patch.pack (lzma streams);
-- one full asset (xz) only for files at least one --from version lacks (new
+- one full asset (xz -9, parallel 64 MiB blocks via xz.exe; same bytes for any thread count) only for files at least one --from version lacks (new
   files such as patch-3/4.MPQ for 0.92/0.93.1) up to --full-max-mb. Supported versions are
   exactly the --from folders: any other version (e.g. 0.84.3) has no patch for
   its exe and gets the full package link (--full-for-all: a full asset for
@@ -21,6 +21,7 @@ import ctypes
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -109,11 +110,95 @@ def make_patch(target_file, old_file, old_sha, new_sha, out, work, generator):
         time.time() - started, seconds, peak
 
 
-def make_full(target_file, new_sha, out, work):
+XZ_CANDIDATES = (Path(os.environ.get('ProgramFiles', r'C:\Program Files')) / 'Git' / 'mingw64' / 'bin' / 'xz.exe',)
+XZ_BLOCK = 64 << 20  # Fixed block size: the output is then the same for any thread count.
+
+
+def find_xz():
+    found = shutil.which('xz')
+    return found or next((str(p) for p in XZ_CANDIDATES if p.is_file()), None)
+
+
+def peak_ram(process):
+    """Peak working set of a finished child (its handle is still open while the Popen object lives)."""
+    class Counters(ctypes.Structure):
+        _fields_ = [('cb', wintypes.DWORD), ('faults', wintypes.DWORD), ('peak', ctypes.c_size_t)] + \
+                   [(f'x{i}', ctypes.c_size_t) for i in range(7)]
+    counters = Counters()
+    counters.cb = ctypes.sizeof(counters)
+    psapi = ctypes.WinDLL('psapi')
+    psapi.GetProcessMemoryInfo.argtypes = (wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD)
+    return counters.peak if psapi.GetProcessMemoryInfo(int(process._handle), ctypes.byref(counters), counters.cb) else 0
+
+
+def pack_full_mt(source, target, label, workers, xz=None):
+    """xz -9 in parallel blocks (one ordinary xz stream; the updater's lzma reads it like a single-block one).
+
+    Returns (threads, peak RAM of xz). Logs progress at least every 10 s. Without xz: single-threaded lzma.
+    """
+    xz = xz or find_xz()
+    if not xz:
+        log(' WARN ', f'{label}: xz.exe nicht gefunden, packe einthreadig mit lzma (langsam)')
+        game_patch.pack_full(source, target)
+        return 1, 0
+    size = Path(source).stat().st_size
+    started = last = time.time()
+    part = Path(str(target) + '.part')
+    with open(part, 'wb') as out:
+        # --threads=+N: the multithreaded encoder even for 1 thread (the single-threaded one writes other block
+        # headers), so the bytes never depend on the thread count.
+        process = subprocess.Popen([xz, '-9', f'--threads=+{workers}', f'--block-size={XZ_BLOCK}', '--check=crc64',
+                                    '-c', '-'],
+                                   stdin=subprocess.PIPE, stdout=out, stderr=subprocess.PIPE)
+        fed = 0
+        try:
+            with open(source, 'rb') as inp:
+                while piece := inp.read(8 << 20):
+                    process.stdin.write(piece)
+                    fed += len(piece)
+                    if time.time() - last >= 10:
+                        last = time.time()
+                        rate = fed / max(last - started, .01)
+                        log(f'{100 * fed // max(size, 1):3d} %', f'xz {label}: {fed / 2**20:.0f}/{size / 2**20:.0f} MiB, '
+                            f'{rate / 2**20:.0f} MiB/s, {workers} Threads, noch ~{(size - fed) / max(rate, 1):.0f} s')
+        finally:
+            process.stdin.close()
+        error = process.stderr.read()
+        code = process.wait()
+        peak = peak_ram(process)
+    if code:
+        part.unlink()
+        raise RuntimeError(f'xz failed ({code}): {error.decode(errors="replace")[-300:]}')
+    part.replace(target)
+    return workers, peak
+
+
+def shrinks(path, sample=32 << 20):
+    """True if xz saves at least 5 % on a sample (MPQ archives are already compressed)."""
+    import lzma
+    with open(path, 'rb') as stream:
+        data = stream.read(sample)
+    return len(lzma.compress(data, preset=1)) < .95 * len(data)
+
+
+def make_full(target_file, new_sha, out, work, xz_threads=1):
     started = time.time()
-    asset = out / asset_name(target_file.relative_to(TARGET).as_posix(), f'-{new_sha[:12]}.xz')
-    game_patch.pack_full(target_file, asset)
-    seconds, peak = verify('full', None, asset, target_file.stat().st_size, new_sha, work)
+    rel = target_file.relative_to(TARGET).as_posix()
+    if not shrinks(target_file):
+        # Raw: the file itself (updater 4), no pointless xz pass over e.g. 1.3 GB of MPQ data.
+        asset = out / asset_name(rel, f'-{new_sha[:12]}.raw')
+        if not asset.exists():
+            shutil.copyfile(target_file, asset)
+        if sha256(asset) != new_sha:
+            raise RuntimeError(f'{asset.name} does not reproduce the target SHA-256')
+        return dict(asset=asset.name, sha256=new_sha, size=asset.stat().st_size, encoding='raw'), \
+            time.time() - started, 0.0, 0
+    asset = out / asset_name(rel, f'-{new_sha[:12]}.xz')
+    packed_with, xz_peak = pack_full_mt(target_file, asset, rel, xz_threads)
+    size = target_file.stat().st_size
+    log(' INFO ', f'xz {rel}: {time.time() - started:.1f} s, {packed_with} Threads, '
+                  f'{size / 2**20 / max(time.time() - started, .01):.0f} MiB/s, Spitze {xz_peak / 2**20:.0f} MiB RAM')
+    seconds, peak = verify('full', None, asset, size, new_sha, work)
     return dict(asset=asset.name, sha256=sha256(asset), size=asset.stat().st_size), time.time() - started, seconds, peak
 
 
@@ -124,7 +209,8 @@ def main():
     ap.add_argument('--from', dest='sources', type=Path, action='append', default=[])
     ap.add_argument('--out', type=Path, required=True)
     ap.add_argument('--full-max-mb', type=float, default=256)
-    ap.add_argument('--full-for-all', action='store_true', help='full assets also for files the old versions have')
+    ap.add_argument('--full-for-all', action='store_true',
+                    help='full assets for every game file (fresh installs by the web installer; large ones raw)')
     ap.add_argument('--generator', type=Path, default=GENERATOR)
     args = ap.parse_args()
     TARGET = args.target
@@ -156,7 +242,9 @@ def main():
     log('  OK  ', f'Spieldateien lesen ({time.time() - t0:.1f} s, {len(game)} Spieldateien, {len(jobs)} Assets zu bauen)')
 
     workers = min(threads(), 4)
-    log(' INFO ', f'{len(jobs)} Assets mit {workers} Threads (Generator je Patch etwa 7x Dateigröße RAM)')
+    xz_threads = max(1, threads() - workers + 1)  # One job's xz plus the other workers stay within the affinity.
+    log(' INFO ', f'{len(jobs)} Assets mit {workers} Threads (Generator je Patch etwa 7x Dateigröße RAM), '
+                  f'Vollassets: xz mit {xz_threads} Threads ({find_xz() or "kein xz.exe: lzma einthreadig"})')
     result = {p: dict(sha256=target[p], size=(args.target / p).stat().st_size, patches=[]) for p in game}
     started = time.time()
     with ThreadPoolExecutor(workers) as pool:
@@ -167,7 +255,7 @@ def main():
                 futures[pool.submit(make_patch, args.target / p, old_file, old_sha, target[p], args.out, work,
                                     args.generator)] = (kind, p, version)
             else:
-                futures[pool.submit(make_full, args.target / p, target[p], args.out, work)] = (kind, p, version)
+                futures[pool.submit(make_full, args.target / p, target[p], args.out, work, xz_threads)] = (kind, p, version)
         for done, future in enumerate(as_completed(futures), 1):
             kind, p, version = futures[future]
             entry, seconds, apply_seconds, peak = future.result()
@@ -188,7 +276,7 @@ def main():
     for leftover in work.iterdir():
         leftover.unlink()
     work.rmdir()
-    assets = sorted(p.name for p in args.out.iterdir() if p.suffix in ('.azp', '.xz'))
+    assets = sorted(p.name for p in args.out.iterdir() if p.suffix in ('.azp', '.xz', '.raw'))
     total = sum((args.out / a).stat().st_size for a in assets)
     log(' INFO ', f'Zusammenfassung: {len(assets)} Assets, {total / 2**20:.1f} MiB in {args.out} ({time.time() - t0:.0f} s)')
     return 0

@@ -1,0 +1,22 @@
+[package]
+name = "azsurvivors-installer"
+version = "1.0.0"
+edition = "2021"
+description = "Azeroth Survivors Together web installer (no admin; signed release, resumable downloads)"
+
+[[bin]]
+name = "azsurvivors-installer"
+path = "src/main.rs"
+
+[dependencies]
+ed25519-dalek = { version = "2", default-features = false, features = ["std"] }
+sha2 = "0.10"
+serde_json = "1"
+base64 = "0.22"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

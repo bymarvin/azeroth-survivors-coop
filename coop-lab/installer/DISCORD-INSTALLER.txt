@@ -1,0 +1,15 @@
+**Azeroth Survivors Together - new installer**
+
+Download **Azeroth-Survivors-Together-Installer.exe** (about 0.4 MB):
+https://github.com/bymarvin/azeroth-survivors-together/releases/latest
+
+Double-click it, choose a folder (or keep the default) and wait. It downloads and checks
+everything (about 1.4 GB, needs about 3 GB free), interrupted downloads continue, and it can
+create Start menu and desktop shortcuts. No admin rights needed.
+
+Already installed? Just start **Start-Coop.cmd**: it updates itself automatically.
+Running the installer on an existing installation updates it too (saves and settings stay).
+
+Windows may show "Windows protected your PC" because the installer is not code-signed:
+click **More info** -> **Run anyway**. Every file it downloads is checked against a
+signed release description.

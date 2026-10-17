@@ -689,7 +689,7 @@ def main():
                                 '--full-max-mb', full_max_mb, '--full-for-all', '--generator', str(GENERATOR)],
                                capture_output=True, text=True, encoding='utf-8', errors='replace')
         assert built.returncode == 0, built.stdout[-600:] + built.stderr[-600:]
-        lab.release(min_updater=2, gamefiles=gamefiles)
+        lab.release(min_updater=4, gamefiles=gamefiles)
         if changed_local:
             (lab.game / self_update.EXE).write_bytes(b'x' + exe1[1:])  # A version without a patch.
         lab.external.hits.clear()
@@ -703,8 +703,8 @@ def main():
             assert built.returncode == 0, built.stderr[-500:]
         lab, assets = patch_lab('patch')
         try:
-            refused(lab, self_update.Refused, 'needs updater 2')  # Updater 1 without an exe to replace.
-            assert lab.run(updater_version=2) == 0
+            refused(lab, self_update.Refused, 'needs updater 4')  # Updater 1 without an exe to replace.
+            assert lab.run(updater_version=4) == 0
             lab.is_version(lab.v2)
             patch = assets[self_update.EXE]['patches'][0]['asset']
             fetched = sorted(h for h in lab.external.hits if h.startswith('gf/'))
@@ -715,14 +715,14 @@ def main():
             lab.close()
         lab, assets = patch_lab('patch-other', changed_local=True)
         try:
-            assert lab.run(updater_version=2) == 0  # No patch for this exe: the full asset.
+            assert lab.run(updater_version=4) == 0  # No patch for this exe: the full asset.
             lab.is_version(lab.v2)
             assert 'gf/' + assets[self_update.EXE]['full']['asset'] in lab.external.hits, lab.external.hits
         finally:
             lab.close()
         lab, assets = patch_lab('patch-none', full_max_mb='0', changed_local=True)
         try:
-            refused(lab, self_update.NeedFullPackage, FULL, updater_version=2)  # Neither patch nor full asset.
+            refused(lab, self_update.NeedFullPackage, FULL, updater_version=4)  # Neither patch nor full asset.
         finally:
             lab.close()
         return info + '; other exe -> full asset; no patch and no full asset -> full package link'
@@ -735,15 +735,15 @@ def main():
             data = bytearray((lab.work / 'external/gf' / name).read_bytes())
             data[len(data) // 2] ^= 0x40
             lab.external.tamper['gf/' + name] = bytes(data)
-            refused(lab, self_update.Refused, 'does not match its signed SHA-256', updater_version=2)
+            refused(lab, self_update.Refused, 'does not match its signed SHA-256', updater_version=4)
             lab.external.tamper.clear()
             for staged in lab.game.glob('coop-update/release-*'):
                 shutil.rmtree(staged)
-            lab.external.cut['gf/' + name] = dict(after=len(data) // 3, times=3)
-            refused(lab, self_update.Offline, 'run the updater again', updater_version=2)
+            lab.external.cut['gf/' + name] = dict(after=len(data) // 4, times=3)  # 3 x 1/4: never complete
+            refused(lab, self_update.Offline, 'run the updater again', updater_version=4)
             lab.external.cut.clear()
             lab.external.ranges.clear()
-            assert lab.run(updater_version=2) == 0  # Continues the cut download.
+            assert lab.run(updater_version=4) == 0  # Continues the cut download.
             assert any(n == 'gf/' + name for n, _ in lab.external.ranges), lab.external.ranges
             lab.is_version(lab.v2)
         finally:
@@ -773,6 +773,45 @@ def main():
         assert game_patch.apply(wrong, work / 'p.azp', work / 'out.bin') != hashlib.sha256(new.read_bytes()).hexdigest()
         return 'tampered asset refused, cut download continued, broken patch or wrong source never matches the target'
     test('Game file patches: damage, wrong source, interrupted download', game_patch_damage)
+
+    def game_sources():
+        """Updater 4: the signed source list (first one gone / wrong -> next one), fresh install into an empty folder."""
+        lab, assets = patch_lab('sources')
+        try:
+            patch = assets[self_update.EXE]['patches'][0]['asset']
+            mirror = lab.work / 'github' / 'mirror'
+            mirror.mkdir()
+            for asset in (lab.work / 'gamefiles').iterdir():
+                shutil.copy2(asset, mirror / asset.name)
+            lab.release(min_updater=4, gamefiles=lab.work / 'gamefiles',
+                        extra=['--gamefiles-url', lab.github.url + 'gone/', '--gamefiles-url', lab.github.url + 'mirror/'])
+            manifest = json.loads(next((lab.work / 'github').glob('manifest-*.json')).read_text())
+            assert len(manifest['gamefiles']['urls']) == 3, manifest['gamefiles']
+            lab.github.tamper['mirror/' + patch] = b'not the patch'
+            lab.github.hits.clear()
+            lab.external.hits.clear()
+            assert lab.run(updater_version=4) == 0
+            lab.is_version(lab.v2)
+            assert 'gone/' + patch in lab.github.hits and 'mirror/' + patch in lab.github.hits, lab.github.hits
+            assert 'gf/' + patch in lab.external.hits, lab.external.hits  # Third source after 404 and wrong bytes.
+            raw = [a for a in assets.values() if (a.get('full') or {}).get('encoding') == 'raw']
+            assert raw, 'no raw asset (random MPQ data does not shrink)'
+            fresh = lab.work / 'fresh'
+            for rel, data in lab.v2.items():  # The installer unpacks the signed runtime archive first.
+                if rel.startswith('.coop-runtime/'):
+                    (fresh / rel).parent.mkdir(parents=True, exist_ok=True)
+                    (fresh / rel).write_bytes(data)
+            updater_v2.su.LOG = None
+            updater_v2.su.IGNORED_PIDS.clear()
+            code = updater_v2.main(['--game', str(fresh), '--release-url', lab.github.url, '--allow-local-http',
+                                    '--updater-version', '4', '--timeout', '3'], builtin=(lab.pub['key-1'],))
+            assert code == 0, code
+            for rel, data in lab.v2.items():
+                assert (fresh / rel).read_bytes() == data, rel
+            return f'404 -> wrong bytes -> third source; fresh install of {len(lab.v2)} files incl. {len(raw)} raw asset(s)'
+        finally:
+            lab.close()
+    test('Updater 4: signed source list and fresh install', game_sources)
 
     def auto_update_check():
         """Start-Coop.cmd step: coop_autoupdate decides (0 = launcher, 10 = run the updater exe first)."""

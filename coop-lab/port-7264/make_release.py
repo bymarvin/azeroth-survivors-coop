@@ -3,7 +3,7 @@
   make_release.py --target <staged package folder> [--game-sources game-sources.json]
                   --updater-exe <built updater exe> [--updater-version N] [--min-updater N]
                   [--sequence N] [--announce-key KEY] [--retire-key KEY] [--key-dir DIR] [--out DIR]
-                  [--full-package-url URL] [--no-check-urls]
+                  [--full-package-url URL] [--no-check-urls] [--installer-exe EXE] [--publish | --publish-dry-run]
 
 Output (upload everything except UPLOAD.txt as assets of ONE GitHub release):
   latest.json, latest.json.sig     signed release description (fixed names)
@@ -11,6 +11,7 @@ Output (upload everything except UPLOAD.txt as assets of ONE GitHub release):
   mod-<version>.zip                mod files (reconstruction, analysis, relay, launcher)
   runtime-<version>.zip            .coop-runtime and .tools (normally never downloaded)
   Azeroth-Survivors-Together-Updater.exe
+  Azeroth-Survivors-Together-Installer.exe   (with --installer-exe; must embed the signing key)
 Game files (AzerothSurvivors.exe, Data/*) are never put on GitHub: their HTTPS
 address comes from game-sources.json ({"<path>": "https://..."}) and their
 SHA-256 from the staged package; UPLOAD.txt lists what must be reachable there.
@@ -65,6 +66,7 @@ def kind(path):
 
 
 UNHOSTED = self_update.RELEASE_URL.split('/releases/')[0] + '/releases'  # Always a page, never the file.
+INSTALLER_ASSET = 'Azeroth-Survivors-Together-Installer.exe'
 
 
 def asset(path):
@@ -111,9 +113,15 @@ def main():
     ap.add_argument('--no-check-urls', action='store_true', help='do not probe the game file addresses')
     ap.add_argument('--allow-local-http', action='store_true', help=argparse.SUPPRESS)
     ap.add_argument('--unhosted-source', default=UNHOSTED, help=argparse.SUPPRESS)  # Tests: a local page.
+    ap.add_argument('--installer-exe', type=Path, help=f'built web installer, shipped as {INSTALLER_ASSET}')
+    ap.add_argument('--publish', action='store_true',
+                    help='after signing: game files to every source, the release to GitHub, a mirror to the server')
+    ap.add_argument('--publish-dry-run', action='store_true', help='print the publish commands instead of running them')
     ap.add_argument('--gamefiles', type=Path, help='folder of coop-lab/updater/make_game_patches.py (gamefiles.json)')
-    ap.add_argument('--gamefiles-url', help='HTTPS base address of those assets, ending in /, e.g. '
-                                            'https://github.com/bymarvin/azeroth-survivors-gamefiles/releases/download/<tag>/')
+    ap.add_argument('--gamefiles-url', action='append', default=[],
+                    help='HTTPS base address of those assets, ending in /, e.g. '
+                         'https://github.com/bymarvin/azeroth-survivors-gamefiles/releases/download/<tag>/; '
+                         'several in the order the updater tries them (updater 4)')
     args = ap.parse_args()
 
     t = time.time()
@@ -202,10 +210,14 @@ def main():
     if args.gamefiles:
         # Updater 2: game files as binary patches / full assets from the game file release.
         patches = json.loads((args.gamefiles / 'gamefiles.json').read_text(encoding='utf-8'))
-        local = args.allow_local_http and (args.gamefiles_url or '').startswith('http://127.0.0.1:')
-        url = args.gamefiles_url or ''
-        if args.min_updater < 2 or not (url.startswith('https://') or local) or not url.endswith('/'):
-            log('FAILED', 'Spielpatches brauchen --min-updater 2 und --gamefiles-url https://.../ (mit /)')
+        urls = args.gamefiles_url
+        good = urls and all(u.endswith('/') and (u.startswith('https://') or args.allow_local_http and
+                                                  u.startswith('http://127.0.0.1:')) for u in urls)
+        raw = any((v.get('full') or {}).get('encoding') == 'raw' for v in patches.values())
+        need = 4 if len(urls) > 1 or raw else 2
+        if args.min_updater < need or not good:
+            log('FAILED', f'Spielpatches brauchen --min-updater {need} und --gamefiles-url https://.../ (mit /)'
+                          + (' (mehrere Quellen oder Raw-Assets: Updater 4)' if need == 4 else ''))
             return 1
         stale = [p for p in patches if p not in target or patches[p]['sha256'] != target[p]]
         if stale:
@@ -219,7 +231,8 @@ def main():
             entry['source'] = dict(patches=[{k: e[k] for k in ('from_sha256', 'asset', 'sha256', 'size')}
                                             for e in patches[p]['patches']])
             if patches[p].get('full'):
-                entry['source']['full'] = {k: patches[p]['full'][k] for k in ('asset', 'sha256', 'size')}
+                entry['source']['full'] = {k: patches[p]['full'][k] for k in ('asset', 'sha256', 'size', 'encoding')
+                                           if k in patches[p]['full']}
         else:
             # Full package only: a page, never this file (stops at once, see UNHOSTED).
             entry['source'] = dict(url=sources.get(p, args.unhosted_source))
@@ -227,7 +240,8 @@ def main():
     manifest = out / f'manifest-{tag}.json'
     body = dict(version=version, files=files)
     if patches:
-        body['gamefiles'] = dict(url=args.gamefiles_url)
+        # Updater 2/3 read one "url"; updater 4 tries "urls" in this signed order.
+        body['gamefiles'] = dict(urls=args.gamefiles_url) if args.min_updater >= 4 else dict(url=args.gamefiles_url[0])
     manifest.write_text(json.dumps(body, indent=1, sort_keys=True), encoding='utf-8')
     updater = out / self_update.UPDATER_ASSET
     updater.write_bytes(args.updater_exe.read_bytes())
@@ -257,17 +271,26 @@ def main():
         log(' WARN ', 'Signierschlüssel steht nicht in self_update.TRUSTED_KEYS (nur ein angekündigter Schlüssel '
                       'oder ein Test): bestehende Updater nehmen dieses Release nur nach einer Ankündigung an')
     log('  OK  ', f'Signieren ({time.time() - t:.1f} s, Schlüssel {key[:12]}...)')
+    if args.installer_exe:
+        # The installer trusts the keys of the self_update.py it embeds: this release's key must be among them.
+        installer = args.installer_exe.read_bytes()
+        if installer[:2] != b'MZ' or key.encode('ascii') not in installer:
+            log('FAILED', f'Installer: {args.installer_exe} ist keine exe oder vertraut dem Signierschlüssel nicht')
+            return 1
+        (out / INSTALLER_ASSET).write_bytes(installer)
+        log('  OK  ', f'Installer ({len(installer)} B, sha256 {sha256(out / INSTALLER_ASSET)[:16]}..., kennt den Schlüssel)')
 
     lines = [f'Release co-op {version} (sequence {latest["sequence"]})', '',
              'Upload as assets of ONE GitHub release (mark it "Latest"):']
     lines += [f'  {name}' for name in ('latest.json', 'latest.json.sig', manifest.name,
-                                        f'mod-{tag}.zip', f'runtime-{tag}.zip', updater.name)]
+                                        f'mod-{tag}.zip', f'runtime-{tag}.zip', updater.name)
+              + ((INSTALLER_ASSET,) if args.installer_exe else ())]
     lines += ['', 'Game files - must be downloadable at exactly these HTTPS addresses (never on GitHub):']
     lines += [f'  {p}  {files[p]["size"]} bytes  sha256 {files[p]["sha256"]}' + chr(10) + f'      {sources[p]}'
               for p in game] or ['  (none)']
     if patches:
         assets = sorted({e['asset'] for v in patches.values() for e in v['patches'] + ([v['full']] if v.get('full') else [])})
-        lines += ['', f'Game file assets: upload to the game file release {args.gamefiles_url}',
+        lines += ['', f'Game file assets: upload to every game file source {", ".join(args.gamefiles_url)}',
                   f'  (from {args.gamefiles}):'] + [f'  {a}' for a in assets]
         lines += ['', 'Folders whose game files have neither a patch nor a full asset are sent to',
                   f'  {args.full_package_url or "MISSING --full-package-url (players see: from the release page)"}']
@@ -276,6 +299,10 @@ def main():
                   f'  {args.full_package_url or "MISSING --full-package-url (players see: from the release page)"}']
     (out / 'UPLOAD.txt').write_text(chr(10).join(lines) + chr(10), encoding='utf-8')
     log(' INFO ', f'Upload-Ordner {out} (siehe UPLOAD.txt)')
+    if args.publish or args.publish_dry_run:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))  # python -I leaves the script folder out.
+        import publish_release
+        return publish_release.publish(out, latest, args.gamefiles_url, args.gamefiles, dry=not args.publish)
     return 0
 
 
