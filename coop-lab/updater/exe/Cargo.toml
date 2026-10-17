@@ -1,0 +1,21 @@
+[package]
+name = "coop-update"
+version = "0.0.11"
+edition = "2021"
+description = "Azeroth Survivors Together co-op updater (one file)"
+
+[[bin]]
+name = "coop-update"
+path = "src/main.rs"
+
+# Online self-updating updater (release asset Azeroth-Survivors-Together-Updater.exe).
+[[bin]]
+name = "coop-updater"
+path = "src/online.rs"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

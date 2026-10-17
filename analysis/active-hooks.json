@@ -1,0 +1,2224 @@
+{
+ "adapter_profile": {
+  "reference_sha256": "20d4ce5fb1232dac64bc00a4d8c9f2bcae43fb8373ea3fa95350ab8c4f20d618",
+  "sha256": "7264d50b82a1ecc2b5f0fcf2f29669c2acaa8bb87c058e17898a47a12984ff30",
+  "release_version": "7264d50b-candidate",
+  "review_method": "0.93.1 (0315cf38) -> 7264d50b durch Befehlsausrichtung (coop-lab/port-7264/map_7264.py, build_7264.py, decisions_7264.py); Code-Varianten Familie 47e4; native Abnahme ausstehend",
+  "adapter_contracts_verified": true,
+  "runtime_equivalent": false,
+  "unresolved_contracts": [],
+  "addresses": [
+   {
+    "reference": 8656,
+    "candidate": 8656
+   },
+   {
+    "reference": 87664256,
+    "candidate": 88164544
+   },
+   {
+    "reference": 87664313,
+    "candidate": 88164601
+   },
+   {
+    "reference": 87664464,
+    "candidate": 88164752
+   },
+   {
+    "reference": 87760336,
+    "candidate": 88321264
+   },
+   {
+    "reference": 87801968,
+    "candidate": 88222480
+   },
+   {
+    "reference": 87827014,
+    "candidate": 88229305
+   },
+   {
+    "reference": 87828352,
+    "candidate": 88229862
+   },
+   {
+    "reference": 87863152,
+    "candidate": 88278160
+   },
+   {
+    "reference": 87865342,
+    "candidate": 88279045
+   },
+   {
+    "reference": 87884672,
+    "candidate": 88039424
+   },
+   {
+    "reference": 87932880,
+    "candidate": 88378608
+   },
+   {
+    "reference": 87950800,
+    "candidate": 88400000
+   },
+   {
+    "reference": 87979557,
+    "candidate": 88435168
+   },
+   {
+    "reference": 87979572,
+    "candidate": 88435183
+   },
+   {
+    "reference": 88000068,
+    "candidate": 88460132
+   },
+   {
+    "reference": 88001649,
+    "candidate": 88461709
+   },
+   {
+    "reference": 88001651,
+    "candidate": 88461711
+   },
+   {
+    "reference": 88001672,
+    "candidate": 88461732
+   },
+   {
+    "reference": 88002366,
+    "candidate": 88462429
+   },
+   {
+    "reference": 88002380,
+    "candidate": 88462445
+   },
+   {
+    "reference": 88006763,
+    "candidate": 88466908
+   },
+   {
+    "reference": 88007336,
+    "candidate": 88611285
+   },
+   {
+    "reference": 88008577,
+    "candidate": 88612552
+   },
+   {
+    "reference": 88009502,
+    "candidate": 88613640
+   },
+   {
+    "reference": 88009519,
+    "candidate": 88613657
+   },
+   {
+    "reference": 88017008,
+    "candidate": 88623616
+   },
+   {
+    "reference": 88017335,
+    "candidate": 88623931
+   },
+   {
+    "reference": 88017344,
+    "candidate": 88623939
+   },
+   {
+    "reference": 88020131,
+    "candidate": 88626659
+   },
+   {
+    "reference": 88020137,
+    "candidate": 88626665
+   },
+   {
+    "reference": 88022882,
+    "candidate": 88466919
+   },
+   {
+    "reference": 88024086,
+    "candidate": 88468533
+   },
+   {
+    "reference": 88025647,
+    "candidate": 88469310
+   },
+   {
+    "reference": 88027614,
+    "candidate": 88471265
+   },
+   {
+    "reference": 88027813,
+    "candidate": 88471461
+   },
+   {
+    "reference": 88027928,
+    "candidate": 88471576
+   },
+   {
+    "reference": 88037088,
+    "candidate": 88486823
+   },
+   {
+    "reference": 88037384,
+    "candidate": 88487129
+   },
+   {
+    "reference": 88067200,
+    "candidate": 88512672
+   },
+   {
+    "reference": 88067255,
+    "candidate": 88512727
+   },
+   {
+    "reference": 88067664,
+    "candidate": 88513136
+   },
+   {
+    "reference": 88079296,
+    "candidate": 88527936
+   },
+   {
+    "reference": 88084880,
+    "candidate": 88535360
+   },
+   {
+    "reference": 88085792,
+    "candidate": 88537184
+   },
+   {
+    "reference": 88085847,
+    "candidate": 88537239
+   },
+   {
+    "reference": 88113920,
+    "candidate": 88568880
+   },
+   {
+    "reference": 88114034,
+    "candidate": 88569004
+   },
+   {
+    "reference": 88121152,
+    "candidate": 88580448
+   },
+   {
+    "reference": 88121597,
+    "candidate": 88580893
+   },
+   {
+    "reference": 88121600,
+    "candidate": 88580896
+   },
+   {
+    "reference": 88121724,
+    "candidate": 88581027
+   },
+   {
+    "reference": 88123300,
+    "candidate": 88582614
+   },
+   {
+    "reference": 88123632,
+    "candidate": 88577920
+   },
+   {
+    "reference": 88124015,
+    "candidate": 88583343
+   },
+   {
+    "reference": 88124082,
+    "candidate": 88583410
+   },
+   {
+    "reference": 88124480,
+    "candidate": 88584064
+   },
+   {
+    "reference": 88124603,
+    "candidate": 88584187
+   },
+   {
+    "reference": 88124609,
+    "candidate": 88584193
+   },
+   {
+    "reference": 88125791,
+    "candidate": 88585378
+   },
+   {
+    "reference": 88127290,
+    "candidate": 88586061
+   },
+   {
+    "reference": 88127297,
+    "candidate": 88586061
+   },
+   {
+    "reference": 88127389,
+    "candidate": 88586079
+   },
+   {
+    "reference": 88128092,
+    "candidate": 88586592
+   },
+   {
+    "reference": 88128096,
+    "candidate": 88586596
+   },
+   {
+    "reference": 88128983,
+    "candidate": 88587306
+   },
+   {
+    "reference": 88130247,
+    "candidate": 88588545
+   },
+   {
+    "reference": 88130458,
+    "candidate": 88589737
+   },
+   {
+    "reference": 88133493,
+    "candidate": 88591853
+   },
+   {
+    "reference": 88133548,
+    "candidate": 88591894
+   },
+   {
+    "reference": 88138520,
+    "candidate": 88596650
+   },
+   {
+    "reference": 88138957,
+    "candidate": 88597086
+   },
+   {
+    "reference": 88146272,
+    "candidate": 88605120
+   },
+   {
+    "reference": 88151072,
+    "candidate": 88640752
+   },
+   {
+    "reference": 88155248,
+    "candidate": 88645648
+   },
+   {
+    "reference": 88159648,
+    "candidate": 88651296
+   },
+   {
+    "reference": 88181920,
+    "candidate": 88679040
+   },
+   {
+    "reference": 88214224,
+    "candidate": 88719360
+   },
+   {
+    "reference": 88248704,
+    "candidate": 88757856
+   },
+   {
+    "reference": 88331808,
+    "candidate": 88293504
+   },
+   {
+    "reference": 88535120,
+    "candidate": 582432
+   },
+   {
+    "reference": 88573248,
+    "candidate": 88318576
+   },
+   {
+    "reference": 88634928,
+    "candidate": 89369408
+   },
+   {
+    "reference": 90742287,
+    "candidate": 91432671
+   },
+   {
+    "reference": 90745872,
+    "candidate": 91445280
+   },
+   {
+    "reference": 90758800,
+    "candidate": 91449168
+   },
+   {
+    "reference": 92390572,
+    "candidate": 93082860
+   },
+   {
+    "reference": 107159200,
+    "candidate": 107919080
+   },
+   {
+    "reference": 107179872,
+    "candidate": 107939792
+   },
+   {
+    "reference": 107187424,
+    "candidate": 107947576
+   },
+   {
+    "reference": 107361120,
+    "candidate": 109806088
+   },
+   {
+    "reference": 107367192,
+    "candidate": 109812664
+   }
+  ],
+  "fields": [
+   {
+    "domain": "batch_frame",
+    "reference": 2456,
+    "candidate": 824
+   },
+   {
+    "domain": "batch_frame",
+    "reference": 2464,
+    "candidate": 832
+   },
+   {
+    "domain": "game",
+    "reference": 720,
+    "candidate": 520
+   },
+   {
+    "domain": "game",
+    "reference": 728,
+    "candidate": 528
+   },
+   {
+    "domain": "game",
+    "reference": 760,
+    "candidate": 560
+   },
+   {
+    "domain": "game",
+    "reference": 844,
+    "candidate": 644
+   },
+   {
+    "domain": "game",
+    "reference": 960,
+    "candidate": 760
+   },
+   {
+    "domain": "game",
+    "reference": 1176,
+    "candidate": 1000
+   },
+   {
+    "domain": "game",
+    "reference": 1184,
+    "candidate": 1008
+   },
+   {
+    "domain": "game",
+    "reference": 1192,
+    "candidate": 1016
+   },
+   {
+    "domain": "game",
+    "reference": 1196,
+    "candidate": 1020
+   },
+   {
+    "domain": "game",
+    "reference": 1200,
+    "candidate": 1024
+   },
+   {
+    "domain": "game",
+    "reference": 1208,
+    "candidate": 1032
+   },
+   {
+    "domain": "game",
+    "reference": 1288,
+    "candidate": 1112
+   },
+   {
+    "domain": "game",
+    "reference": 1292,
+    "candidate": 1116
+   },
+   {
+    "domain": "game",
+    "reference": 1312,
+    "candidate": 1136
+   },
+   {
+    "domain": "game",
+    "reference": 1316,
+    "candidate": 1140
+   },
+   {
+    "domain": "game",
+    "reference": 1336,
+    "candidate": 1160
+   },
+   {
+    "domain": "game",
+    "reference": 1400,
+    "candidate": 1224
+   },
+   {
+    "domain": "game",
+    "reference": 1408,
+    "candidate": 1232
+   },
+   {
+    "domain": "game",
+    "reference": 1416,
+    "candidate": 1240
+   },
+   {
+    "domain": "game",
+    "reference": 1440,
+    "candidate": 1264
+   },
+   {
+    "domain": "game",
+    "reference": 1472,
+    "candidate": 1296
+   },
+   {
+    "domain": "game",
+    "reference": 1496,
+    "candidate": 1320
+   },
+   {
+    "domain": "game",
+    "reference": 1512,
+    "candidate": 1336
+   },
+   {
+    "domain": "game",
+    "reference": 1520,
+    "candidate": 1344
+   },
+   {
+    "domain": "game",
+    "reference": 1536,
+    "candidate": 1360
+   },
+   {
+    "domain": "game",
+    "reference": 1544,
+    "candidate": 1368
+   },
+   {
+    "domain": "game",
+    "reference": 1552,
+    "candidate": 1376
+   },
+   {
+    "domain": "game",
+    "reference": 1576,
+    "candidate": 1400
+   },
+   {
+    "domain": "game",
+    "reference": 1608,
+    "candidate": 1432
+   },
+   {
+    "domain": "game",
+    "reference": 1616,
+    "candidate": 1440
+   },
+   {
+    "domain": "game",
+    "reference": 1624,
+    "candidate": 1448
+   },
+   {
+    "domain": "game",
+    "reference": 1664,
+    "candidate": 1488
+   },
+   {
+    "domain": "game",
+    "reference": 1756,
+    "candidate": 1640
+   },
+   {
+    "domain": "game",
+    "reference": 1760,
+    "candidate": 1644
+   },
+   {
+    "domain": "game",
+    "reference": 1764,
+    "candidate": 1648
+   },
+   {
+    "domain": "game",
+    "reference": 1856,
+    "candidate": 1736
+   },
+   {
+    "domain": "game",
+    "reference": 2048,
+    "candidate": 2136
+   },
+   {
+    "domain": "game",
+    "reference": 2056,
+    "candidate": 2144
+   },
+   {
+    "domain": "game",
+    "reference": 2072,
+    "candidate": 2160
+   },
+   {
+    "domain": "game",
+    "reference": 2080,
+    "candidate": 2168
+   },
+   {
+    "domain": "game",
+    "reference": 2088,
+    "candidate": 2176
+   },
+   {
+    "domain": "game",
+    "reference": 2096,
+    "candidate": 2184
+   },
+   {
+    "domain": "game",
+    "reference": 2112,
+    "candidate": 2216
+   },
+   {
+    "domain": "game",
+    "reference": 2156,
+    "candidate": 2260
+   },
+   {
+    "domain": "game",
+    "reference": 2160,
+    "candidate": 2268
+   },
+   {
+    "domain": "game",
+    "reference": 2164,
+    "candidate": 2272
+   },
+   {
+    "domain": "game",
+    "reference": 2212,
+    "candidate": 2336
+   },
+   {
+    "domain": "game",
+    "reference": 2245,
+    "candidate": 2370
+   },
+   {
+    "domain": "game",
+    "reference": 2249,
+    "candidate": 2376
+   },
+   {
+    "domain": "game",
+    "reference": 2255,
+    "candidate": 2383
+   },
+   {
+    "domain": "game_extent",
+    "reference": 2256,
+    "candidate": 2384
+   },
+   {
+    "domain": "game_update_frame",
+    "reference": 392,
+    "candidate": 664
+   },
+   {
+    "domain": "game_update_frame",
+    "reference": 968,
+    "candidate": 816
+   },
+   {
+    "domain": "game_update_frame",
+    "reference": 976,
+    "candidate": 824
+   },
+   {
+    "domain": "game_update_frame",
+    "reference": 992,
+    "candidate": 840
+   },
+   {
+    "domain": "map",
+    "reference": 0,
+    "candidate": 8
+   },
+   {
+    "domain": "map",
+    "reference": 8,
+    "candidate": 16
+   },
+   {
+    "domain": "map",
+    "reference": 64,
+    "candidate": 88
+   },
+   {
+    "domain": "map",
+    "reference": 160,
+    "candidate": 184
+   },
+   {
+    "domain": "server",
+    "reference": 16,
+    "candidate": 16
+   },
+   {
+    "domain": "server",
+    "reference": 2328,
+    "candidate": 2456
+   },
+   {
+    "domain": "enemy_frame",
+    "reference": 992,
+    "candidate": 656
+   },
+   {
+    "domain": "enemy_frame",
+    "reference": 976,
+    "candidate": 632
+   },
+   {
+    "domain": "enemy_frame",
+    "reference": 208,
+    "candidate": 0
+   },
+   {
+    "domain": "enemy_frame",
+    "reference": 740,
+    "candidate": 164
+   }
+  ],
+  "patches": [
+   {
+    "reference": 87664256,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 87801968,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 87828352,
+    "expected": "ff5020",
+    "candidate_bytes": "ff5020"
+   },
+   {
+    "reference": 87863152,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 87932880,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 87950800,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 87979557,
+    "expected": "0f85dde10000",
+    "candidate_bytes": "0f85f3ca0000"
+   },
+   {
+    "reference": 88001649,
+    "expected": "7215",
+    "candidate_bytes": "7215"
+   },
+   {
+    "reference": 88002366,
+    "expected": "498d8588050000488985e8020000",
+    "candidate_bytes": "f3450f1085d4080000498d8538050000"
+   },
+   {
+    "reference": 88008577,
+    "expected": "f30f10862c0100000f2ec70f868e000000",
+    "candidate_bytes": "f3410f108424400100000f2ec60f86a5000000"
+   },
+   {
+    "reference": 88009502,
+    "expected": "450f28cf440f5c8dd0000000f3450f16e9",
+    "candidate_bytes": "450f28cf440f5c4d00410f28c1410f59c1"
+   },
+   {
+    "reference": 88017335,
+    "expected": "f2410f108998040000",
+    "candidate_bytes": "f20f108ee8030000"
+   },
+   {
+    "reference": 88020131,
+    "expected": "0f82c7f3ffff",
+    "candidate_bytes": "0f8217f4ffff"
+   },
+   {
+    "reference": 88022882,
+    "expected": "f20f10be980400008b86a0040000",
+    "candidate_bytes": "f2410f10bde8030000418b85f0030000"
+   },
+   {
+    "reference": 88024086,
+    "expected": "f30f598624050000e8ec792900f3410f5fc5",
+    "candidate_bytes": "f30f598674040000e89d3a2d00f30f5f0506684600"
+   },
+   {
+    "reference": 88025647,
+    "expected": "8b8eb804000001c1898eb8040000",
+    "candidate_bytes": "8b8e0804000001c1898e08040000"
+   },
+   {
+    "reference": 88027614,
+    "expected": "8b8eb804000001c1898eb8040000",
+    "candidate_bytes": "8b8e0804000001c1898e08040000"
+   },
+   {
+    "reference": 88027813,
+    "expected": "f30f598624050000e85d6b2900f3410f5fc2",
+    "candidate_bytes": "f30f598674040000e82d2f2d00f3410f5fc4"
+   },
+   {
+    "reference": 88027928,
+    "expected": "8b8eb804000001c1898eb8040000",
+    "candidate_bytes": "8b8e0804000001c1898e08040000"
+   },
+   {
+    "reference": 88067200,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 88067664,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 88079296,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 88085792,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 88121152,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 88121597,
+    "expected": "4839d10f839e060000488b8ed8020000",
+    "candidate_bytes": "4839d10f83b0060000488b8e10020000"
+   },
+   {
+    "reference": 88121600,
+    "expected": "0f839e060000",
+    "candidate_bytes": "0f83b0060000"
+   },
+   {
+    "reference": 88123632,
+    "expected": "4156",
+    "candidate_bytes": "4157"
+   },
+   {
+    "reference": 88124015,
+    "expected": "f2410f1086800000000f28ce0f5cc8",
+    "candidate_bytes": "f2410f1086980000000f28ce0f5cc8"
+   },
+   {
+    "reference": 88125791,
+    "expected": "f3440f59de",
+    "candidate_bytes": "f3440f59c6"
+   },
+   {
+    "reference": 88127290,
+    "expected": "4c8ba6800600004889b578010000",
+    "candidate_bytes": "488d8ef80500004c89fa0f28d7e841c80200"
+   },
+   {
+    "reference": 88128092,
+    "expected": "0fb6824c03000004fe",
+    "candidate_bytes": "4889f1e828ddfeff450f57e4"
+   },
+   {
+    "reference": 88130247,
+    "expected": "f30f108844050000",
+    "candidate_bytes": "f3440f10a694040000"
+   },
+   {
+    "reference": 88130458,
+    "expected": "488b8578010000",
+    "candidate_bytes": "ff8668060000"
+   },
+   {
+    "reference": 88133548,
+    "expected": "488b8660030000488b8e68030000",
+    "candidate_bytes": "488b8698020000486b8ea002000058"
+   },
+   {
+    "reference": 88151072,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 88214224,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 88248704,
+    "expected": "55",
+    "candidate_bytes": "55"
+   },
+   {
+    "reference": 88331808,
+    "expected": "4157",
+    "candidate_bytes": "4157"
+   },
+   {
+    "reference": 88634928,
+    "expected": "55",
+    "candidate_bytes": "55"
+   }
+  ],
+  "required_inputs": {
+   "addresses": [
+    8656,
+    87664256,
+    87664313,
+    87664464,
+    87760336,
+    87801968,
+    87827014,
+    87828352,
+    87863152,
+    87865342,
+    87884672,
+    87932880,
+    87950800,
+    87979557,
+    87979572,
+    88000068,
+    88001649,
+    88001651,
+    88001672,
+    88002366,
+    88002380,
+    88006763,
+    88007336,
+    88008577,
+    88009502,
+    88009519,
+    88017008,
+    88017335,
+    88017344,
+    88020131,
+    88020137,
+    88022882,
+    88024086,
+    88025647,
+    88027614,
+    88027813,
+    88027928,
+    88037088,
+    88037384,
+    88067200,
+    88067255,
+    88067664,
+    88079296,
+    88084880,
+    88085792,
+    88085847,
+    88113920,
+    88114034,
+    88121152,
+    88121597,
+    88121600,
+    88121724,
+    88123300,
+    88123632,
+    88124015,
+    88124082,
+    88124480,
+    88124603,
+    88124609,
+    88125791,
+    88127290,
+    88127297,
+    88127389,
+    88128092,
+    88128096,
+    88128983,
+    88130247,
+    88130458,
+    88133493,
+    88133548,
+    88138520,
+    88138957,
+    88146272,
+    88151072,
+    88155248,
+    88159648,
+    88181920,
+    88214224,
+    88248704,
+    88331808,
+    88535120,
+    88573248,
+    88634928,
+    90742287,
+    90745872,
+    90758800,
+    92390572,
+    107159200,
+    107179872,
+    107187424,
+    107361120,
+    107367192
+   ],
+   "patches": [
+    [
+     87664256,
+     "55"
+    ],
+    [
+     87801968,
+     "55"
+    ],
+    [
+     87828352,
+     "ff5020"
+    ],
+    [
+     87863152,
+     "55"
+    ],
+    [
+     87932880,
+     "55"
+    ],
+    [
+     87950800,
+     "55"
+    ],
+    [
+     87979557,
+     "0f85dde10000"
+    ],
+    [
+     88001649,
+     "7215"
+    ],
+    [
+     88002366,
+     "498d8588050000488985e8020000"
+    ],
+    [
+     88008577,
+     "f30f10862c0100000f2ec70f868e000000"
+    ],
+    [
+     88009502,
+     "450f28cf440f5c8dd0000000f3450f16e9"
+    ],
+    [
+     88017335,
+     "f2410f108998040000"
+    ],
+    [
+     88020131,
+     "0f82c7f3ffff"
+    ],
+    [
+     88022882,
+     "f20f10be980400008b86a0040000"
+    ],
+    [
+     88024086,
+     "f30f598624050000e8ec792900f3410f5fc5"
+    ],
+    [
+     88025647,
+     "8b8eb804000001c1898eb8040000"
+    ],
+    [
+     88027614,
+     "8b8eb804000001c1898eb8040000"
+    ],
+    [
+     88027813,
+     "f30f598624050000e85d6b2900f3410f5fc2"
+    ],
+    [
+     88027928,
+     "8b8eb804000001c1898eb8040000"
+    ],
+    [
+     88067200,
+     "55"
+    ],
+    [
+     88067664,
+     "55"
+    ],
+    [
+     88079296,
+     "55"
+    ],
+    [
+     88085792,
+     "55"
+    ],
+    [
+     88121152,
+     "55"
+    ],
+    [
+     88121597,
+     "4839d10f839e060000488b8ed8020000"
+    ],
+    [
+     88121600,
+     "0f839e060000"
+    ],
+    [
+     88123632,
+     "4156"
+    ],
+    [
+     88124015,
+     "f2410f1086800000000f28ce0f5cc8"
+    ],
+    [
+     88125791,
+     "f3440f59de"
+    ],
+    [
+     88127290,
+     "4c8ba6800600004889b578010000"
+    ],
+    [
+     88128092,
+     "0fb6824c03000004fe"
+    ],
+    [
+     88130247,
+     "f30f108844050000"
+    ],
+    [
+     88130458,
+     "488b8578010000"
+    ],
+    [
+     88133548,
+     "488b8660030000488b8e68030000"
+    ],
+    [
+     88151072,
+     "55"
+    ],
+    [
+     88214224,
+     "55"
+    ],
+    [
+     88248704,
+     "55"
+    ],
+    [
+     88331808,
+     "4157"
+    ],
+    [
+     88634928,
+     "55"
+    ]
+   ],
+   "fields": [
+    [
+     "batch_frame",
+     2456
+    ],
+    [
+     "batch_frame",
+     2464
+    ],
+    [
+     "game",
+     720
+    ],
+    [
+     "game",
+     728
+    ],
+    [
+     "game",
+     760
+    ],
+    [
+     "game",
+     844
+    ],
+    [
+     "game",
+     960
+    ],
+    [
+     "game",
+     1176
+    ],
+    [
+     "game",
+     1184
+    ],
+    [
+     "game",
+     1192
+    ],
+    [
+     "game",
+     1196
+    ],
+    [
+     "game",
+     1200
+    ],
+    [
+     "game",
+     1208
+    ],
+    [
+     "game",
+     1288
+    ],
+    [
+     "game",
+     1292
+    ],
+    [
+     "game",
+     1312
+    ],
+    [
+     "game",
+     1316
+    ],
+    [
+     "game",
+     1336
+    ],
+    [
+     "game",
+     1400
+    ],
+    [
+     "game",
+     1408
+    ],
+    [
+     "game",
+     1416
+    ],
+    [
+     "game",
+     1440
+    ],
+    [
+     "game",
+     1472
+    ],
+    [
+     "game",
+     1496
+    ],
+    [
+     "game",
+     1512
+    ],
+    [
+     "game",
+     1520
+    ],
+    [
+     "game",
+     1536
+    ],
+    [
+     "game",
+     1544
+    ],
+    [
+     "game",
+     1552
+    ],
+    [
+     "game",
+     1576
+    ],
+    [
+     "game",
+     1608
+    ],
+    [
+     "game",
+     1616
+    ],
+    [
+     "game",
+     1624
+    ],
+    [
+     "game",
+     1664
+    ],
+    [
+     "game",
+     1756
+    ],
+    [
+     "game",
+     1760
+    ],
+    [
+     "game",
+     1764
+    ],
+    [
+     "game",
+     1856
+    ],
+    [
+     "game",
+     2048
+    ],
+    [
+     "game",
+     2056
+    ],
+    [
+     "game",
+     2072
+    ],
+    [
+     "game",
+     2080
+    ],
+    [
+     "game",
+     2088
+    ],
+    [
+     "game",
+     2096
+    ],
+    [
+     "game",
+     2112
+    ],
+    [
+     "game",
+     2156
+    ],
+    [
+     "game",
+     2160
+    ],
+    [
+     "game",
+     2164
+    ],
+    [
+     "game",
+     2212
+    ],
+    [
+     "game",
+     2245
+    ],
+    [
+     "game",
+     2249
+    ],
+    [
+     "game",
+     2255
+    ],
+    [
+     "game_extent",
+     2256
+    ],
+    [
+     "game_update_frame",
+     392
+    ],
+    [
+     "game_update_frame",
+     968
+    ],
+    [
+     "game_update_frame",
+     976
+    ],
+    [
+     "game_update_frame",
+     992
+    ],
+    [
+     "map",
+     0
+    ],
+    [
+     "map",
+     8
+    ],
+    [
+     "map",
+     64
+    ],
+    [
+     "map",
+     160
+    ],
+    [
+     "server",
+     16
+    ],
+    [
+     "server",
+     2328
+    ],
+    [
+     "enemy_frame",
+     992
+    ],
+    [
+     "enemy_frame",
+     976
+    ],
+    [
+     "enemy_frame",
+     208
+    ],
+    [
+     "enemy_frame",
+     740
+    ]
+   ]
+  },
+  "native_live_contracts": {
+   "hud": {
+    "rva": "0x54247e6",
+    "server_stack_offset": 1256,
+    "receiver_field": 3816,
+    "vtable_field": 3824,
+    "buffer_register": "rdx",
+    "length_register": "r8",
+    "callback_slot": 32,
+    "stack_register": "rbp",
+    "buffer_stack_offset": 152,
+    "length_stack_offset": 160
+   },
+   "batch": {
+    "call_rva": "0x54245b4",
+    "return_rva": "0x54245b9",
+    "serializer_rva": "0x5424589",
+    "connection_source": "owned_queue",
+    "queue_field": 144,
+    "queue_offset": 16,
+    "packet_stack_register": "rbp",
+    "packet_buffer_stack_offset": 152,
+    "packet_length_stack_offset": 160,
+    "ui_vector": {
+     "stack_register": "rbp",
+     "capacity": 816,
+     "pointer": 824,
+     "count": 832,
+     "element_size": 24
+    }
+   },
+   "connection": {
+    "server_stack_offset": 1256,
+    "capacity_field": 2448,
+    "pointer_field": 2456,
+    "count_field": 2464,
+    "element_size": 176,
+    "receive_queue_field": 136,
+    "queue_offset": 16
+   },
+   "game": {
+    "game_offset": 16
+   }
+  },
+  "dispatch_guards": [
+   {
+    "kind": "cast_tag",
+    "rva": 88623939,
+    "expected": "89d24c8d0520544301496314904c01c2",
+    "table_rva": 109813612,
+    "maximum": 4,
+    "continuation_rva": 88623955,
+    "mandatory_runtime_guard": true,
+    "table_register": "r8"
+   },
+   {
+    "kind": "loot_tag",
+    "rva": 88468800,
+    "expected": "89d849634485004c01e8ffe0",
+    "table_rva": 109813220,
+    "maximum": 6,
+    "continuation_rva": 88468812,
+    "mandatory_runtime_guard": true,
+    "table_register": "r13"
+   }
+  ],
+  "damage_guard": {
+   "rva": 88591944,
+   "expected": "440fb6be11010000",
+   "base": "rsi",
+   "destination": "r15d",
+   "offset": 273,
+   "width": 1,
+   "maximum": 3,
+   "length": 8,
+   "zero_extend_to": 32,
+   "mandatory": true
+  },
+  "effect_guard": {
+   "rva": 88757917,
+   "expected": "418b00",
+   "base": "r8",
+   "destination": "eax",
+   "offset": 0,
+   "width": 4,
+   "maximum": 10,
+   "length": 3,
+   "zeroextend32": true,
+   "borrowed_size": 12,
+   "mandatory": true,
+   "ownership": "borrowed-readable-12"
+  },
+  "pending": [
+   "native Abnahme mit 4 Clients (bindet identity/native_acceptance; ohne sie verweigert der Start)",
+   "party_markers (Raid-Symbole/Minikarte) bleibt f\u00fcr 47e4 abgeschaltet (nur 0.84.3 getestet)"
+  ],
+  "implemented_code_variants": [
+   "updated_layout: Build-Variante (build_variant() -> \"0843\"/\"47e4\") statt nur release_0843()",
+   "native_guest_combat XP Pfad A (0x547c495): maxss xmm0,[rip] -> mov rax,abs; maxss xmm0,[rax]",
+   "visibility_bridge.downed_world_code (47e4): Uhr movss xmm7,[r13+G]; addss xmm7,xmm6; movss [r13+G],xmm7; normal = 9 Bytes + jmp 0x547424f; Konstante movss xmm13,[0x58ab444] + xorps xmm15,xmm15",
+   "visibility_bridge.world_containers_code (47e4): &0x538->rbp+0x320, &0x8a8->+0x288, &0x870->+0x48 (aus Liveness nach 0x547be3c; Methode an 0.84.3 validiert)",
+   "visibility_bridge.downed_hazards_code (47e4): Phasentest cmp byte [r13+0x94e],4; normal = 16 Bytes Original + jmp 0x547accd; downed: Container + Konstante + jmp 0x547be3c",
+   "visibility_bridge Gegner-Datensatz: Stride 0x158, GUID 0x88, ENEMY_RECORD <I28xQ96xf24x3f3fff (parse_native_enemies, native_enemy, native_enemy_array, pursuit_code)",
+   "visibility_bridge.pursuit_code (47e4): Game-Slot enemy_frame 0x260, Ziel enemy_frame 0x50, Host-Z 0x74, Gegner r15, Schwelle movd edx,xmm8, Original 17 Bytes, zur\u00fcck 0x549f3f6",
+   "visibility_bridge.guest_damage_patches (47e4): Z\u00e4hler jmp 0x549893f; mulss->movaps xmm8,xmm6; Klasse xorps xmm12 + jmp 0x5498e0a; Modifikator xorps xmm12; Procs jmp 0x549b36e",
+   "visibility_bridge.dispatch_guard_code (47e4): cast_tag mit r8 (89d2 49b8 table), loot_tag mov eax,ebx/r13",
+   "native_guest_combat Handler (47e4): ENEMY_TARGET Game rsi(168), Gegner-XY xmm? pr\u00fcfen; ENEMY_AOE Game rbx(144), Radius xmm6, Schaden xmm7*xmm12; GROUND_AOE Game r14(232), Boden xmm11, Radius xmm10; Angreifer-Slot enemy/update frame",
+   "native_guest_combat Gast-Spiegelwelt (47e4): KI-Grenze jmp 0x549eb35; restore_game mov r13,[rbp+0x338]; lea rax,[r13+0x538]; mov [rbp+0x320],rax; jmp 0x5480c07",
+   "boss_rewards (47e4): BOSS_DEATH Game=rsi, Definition=rcx, inc [rsi+0x668] emulieren, RIP+6; Guardian-Z\u00e4hler 0x6e8/0x888 \u00fcber Feldtabelle"
+  ],
+  "identity": {
+   "sha256": "7264d50b82a1ecc2b5f0fcf2f29669c2acaa8bb87c058e17898a47a12984ff30",
+   "reference_sha256": "20d4ce5fb1232dac64bc00a4d8c9f2bcae43fb8373ea3fa95350ab8c4f20d618",
+   "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+   "disassembler": "5.0.7",
+   "pe_parser": "2024.8.26",
+   "sources": {
+    "reconstruction\\boss_rewards.py": "6e57729146cacffb42e7c569109caaeed60e6b293e993af4272c8a068573f117",
+    "reconstruction\\build_hooks.py": "e45a7354be07906f928e7eca0675f388761710f8f8a86f83e71bf7dd96c99a7e",
+    "reconstruction\\coop_transport.py": "4702bef1493f518bf6f3dd397aa8517ab44ed55aec62ff78f25dde2b6c71083e",
+    "reconstruction\\crash_reports.py": "58d025727ad5a1bfb81307a49d777a33fbf369f6661c3e276651c217b33362c8",
+    "reconstruction\\group_online.py": "03e2870411760a11292fc185a060df88803894baafefd2081edacd5573393dab",
+    "reconstruction\\guest_auras.py": "21a76b241715790ac6eec38ff04f9fe290bc9391e9005b4252866ecab63b06f6",
+    "reconstruction\\launcher_profile.py": "f3b7dad1d34c220f0eb45f09a04bbb7c9b3748f08227d826591383028d29f209",
+    "reconstruction\\lobby.py": "edc5e2e6971e5f6f45e7519b6b1ca85ee82bd41df2914609e43c48df55cc8286",
+    "reconstruction\\lobby_server.py": "eee5ce72951742a93d424077fb690fa0d8de3d33e3f96d5941950cc0684075bb",
+    "reconstruction\\loop_profile.py": "5da9690f47cc052052be201f97f9750ff0d691a2d995290f4ac6cf1729ca088b",
+    "reconstruction\\native_guest_combat.py": "2f84b569f24c9e2e1c6aa7b8dced46407746eab58e33a8de974255646eb907a5",
+    "reconstruction\\native_probe.py": "8f9f09d64dd4907dbb11e820a5bda88ff94589288348ef97616a9590d329a818",
+    "reconstruction\\native_test_process.py": "03694ac00ee31bfbf4cdc99af68eb77a082d609b2ba2c9db967cdd9d9502663b",
+    "reconstruction\\native_window_layout.py": "674345ee5d93bd0e0de558f66e13b224bfdff8acaa5a839111e5b12986bac531",
+    "reconstruction\\online_bridge.py": "6003e05c172c1539016c4b5ae23cf8985c7c3c52d2e647dbeb8e1fc9c47ef4ae",
+    "reconstruction\\party_markers.py": "93ffc8f627e0a978243ea2a1dac6517a941623caa3c46e93c20310c875607ba5",
+    "reconstruction\\party_menu.py": "907b73572f1b40770a9467f3feb7bd5dae1e81c6fd7f36521417ca99a4f546d4",
+    "reconstruction\\personal_save.py": "b2c4c46bc8f500a82d2470436d0060aa17914a3725146fcf06a4783a643dc76f",
+    "reconstruction\\play_limits.py": "1a39a5a43a7d7e58160f5b59b4d6dc6273c4c37ddfcab073e7cb0bfd08fa4fba",
+    "reconstruction\\port_mapping.py": "40beb51eb338bf978bae474e88551501c9570b18e0aa3c413f95e00fa7444b47",
+    "reconstruction\\probe_native_menu.py": "33e30fad55639246c0bd985527365035d7a9417813d5320f81e9d0241a04d154",
+    "reconstruction\\room_client.py": "ef6484f410d68c49c8d1ecf9a4540fc7579e63ff62202e216fcb1a446eefecbf",
+    "reconstruction\\runtime_addresses.py": "30edf9e6012da3b030dfc4a747a6fc284b61ea975a07c726b9edf4d9d189aad7",
+    "reconstruction\\self_update.py": "0f4687a96bf005fc2df9bb4406a17ad6f8d2614e359b5d3af76e4f5b123f594c",
+    "reconstruction\\sessions.py": "ec98c8c0674da749b7cc9ebfb688f1cbf4b420267a38eedd6be4a94177f19433",
+    "reconstruction\\test_automatic_observation.py": "a27c20b520906e7f35f9f69692a1258077211a7565a60c73bfdc46b10f57aff3",
+    "reconstruction\\test_boss_rewards.py": "7c0c64eaa5bd36de7c0fbb6cac47102c9eb0aca5b04487586d35b5a3d55c1d17",
+    "reconstruction\\test_build_discovery.py": "53f55cfd7743da14bda622409e9aad0d4a5787ab11e83b44c3dfe9f2f47a24c0",
+    "reconstruction\\test_candidate_rooms.py": "d843e10c4fa05e285d990dd9017bd340924b9802dbbc9b0ae59b76cdfd54c443",
+    "reconstruction\\test_character_names.py": "d9b78cf0252167dca8a133e02b084be791cc8eb6949d0f78ac24d7e8ca6e7bee",
+    "reconstruction\\test_completed_reports.py": "e3cb04d7e4bbb49afc5c394e6622d492672d7f5dd6d2f389aa2c9d22d4b518ed",
+    "reconstruction\\test_coop_transport.py": "b9c587444794b04702b8a078fa1bc3bd7d8088688cd686a2e448f26fbd5396d2",
+    "reconstruction\\test_crash_reports.py": "f0795500e7be5cc2b1250a14ef0f69929653572e5684616358042688ade74f78",
+    "reconstruction\\test_downed_fix.py": "c1cbfccb7365c1d21bd9deeca888cfd069f40753de9a2512d9a388c697f29030",
+    "reconstruction\\test_drain_order.py": "aa6c7a854f047a0b3be919017b91c5f9eaafb5268819afcbc85dd610dc9337f5",
+    "reconstruction\\test_dynamic_objects.py": "799eebf7a419ccbfb11eb24f1641af98b7b6931861214828d7aeef83691d1bdc",
+    "reconstruction\\test_effect_contracts.py": "2f034e42b2c783300ed074c61f4e496cbe9cd02c8bdc9eb491267c47c5689a5b",
+    "reconstruction\\test_encounter_rewards.py": "6e0423f813e4f4c90b7ac093223db73993f7a9209db2e04008e7f5d55b0da77e",
+    "reconstruction\\test_field_discovery.py": "81970837863130fa0c7b4c9b2883119c2dbc5975a26452c1631735e513cb91c4",
+    "reconstruction\\test_gear_observation.py": "c6dbb6176c1c1e308334352294034cd36c6d081774c9c173aaf31d2d44eaf7ff",
+    "reconstruction\\test_group.py": "f42139fdb500bec71aafc5d3308643d2bb4968368a5a44c77b95013472a51e0e",
+    "reconstruction\\test_guest_fixes.py": "8b1718223521608d5cc86d9e591b6d94cd24b5a55bc849f9849c6de19b6396ef",
+    "reconstruction\\test_incoming_hits.py": "18774f4ef36959b21380088cba96a57c67b595ff1733b3c61a122fcfc15381f9",
+    "reconstruction\\test_jump_totems.py": "ae172d666c7ffc9e5d2e50be24f730513fda571ae7cc781e89772f5ca6b54e65",
+    "reconstruction\\test_latency.py": "964f374015ee673afd81837710b2978a1ee8ce057cae3e87b334dc24bfcf7a03",
+    "reconstruction\\test_launcher_profile.py": "726ef0ba1be75be9e6f9d11d177f627e08571f997afeb682f18978e1add8fbaa",
+    "reconstruction\\test_live_guards.py": "c6c57e79865a3de92799d9df5a21d5116b49036543cb41f2c2df73fe2d51b9e1",
+    "reconstruction\\test_lobby.py": "d1dd45249dd6828405879dfba07e69ee446252126b5fcea6f2474ee4676a2242",
+    "reconstruction\\test_lobby_chat.py": "68b00bf48469709137cb4722e4ad70fb65d3dee508d8678b12318a9538383e2a",
+    "reconstruction\\test_lobby_errors.py": "8873dbc2c90ddaa148f10cd4e53efff15a1c29ed23f8f5376dff62b38f1e3c21",
+    "reconstruction\\test_lobby_versions.py": "e5f597fde74fde6f069eeb8fd9ab476272f72925cb1afb27a1d18afffa325801",
+    "reconstruction\\test_loop_relief.py": "5dd8e2751cce2445aed6e9fbd0c46013e25e5bedf1541c0c2890d803d664c35d",
+    "reconstruction\\test_map_selection_layout.py": "87e3cfb3b366d79c5a5ad3df22ce14bf5ae497c1379ce80e2995fdf70984015e",
+    "reconstruction\\test_menu_contracts.py": "6dfab88fc7e9fec1bbf960f7ca25ba08cd396fda891808f204573b365697e6f7",
+    "reconstruction\\test_native_fields.py": "4968317af21db22bc52a4b35a089bb7dea68112509284e114d9ae0dbf591b0fd",
+    "reconstruction\\test_native_helpers.py": "f8b81a9976e86a75ba698e10b02610f321c183de8ca385895533063b822983f0",
+    "reconstruction\\test_native_inventory.py": "21a456ed5dd0ca4bd9a0e5cdad140e04877817fc5eff6772c00adb09883b9760",
+    "reconstruction\\test_native_runtime_mapping.py": "8844a59b5cdddc0525d1b6aee1e87026c0272d35bc6c2bdfc2c992bc03d2ddec",
+    "reconstruction\\test_native_shutdown.py": "975f1b40fd878b93dfbf17a6620cf622015a2b0610008d9eaf996aba2f3f1062",
+    "reconstruction\\test_native_test_process.py": "5ba016d6fe181c560fc06ebadd68454904c86c4053520806eeea59b8d982b4e1",
+    "reconstruction\\test_network_boss_acceptance.py": "c022f77f6a7a536c85889ecc83a1790d8a171cbcff8726681a0df7ea854f34b9",
+    "reconstruction\\test_party_departure.py": "28f37c87e8fac9912716f4255998354342830e62594d6f57b94ead7eac3489c1",
+    "reconstruction\\test_party_economy.py": "6dca6c47fc9b876f7a9d2f70c22185c137f04235841e9bebc65962f98e529542",
+    "reconstruction\\test_party_evidence.py": "be6420a45c41282e0238e92b852c24c51b40d8bc12ac2b11fbb75e1165e53320",
+    "reconstruction\\test_party_markers.py": "4330cfc3e25afe265bc460a4c94259bf97e709803580640125b907d4c62280f3",
+    "reconstruction\\test_party_menu.py": "ee867f991939bece6e4c4d66556a3b23b01611bbf5f655bf4042509c0d933b57",
+    "reconstruction\\test_personal_save.py": "50973d6034441cc4db0f4b95995a1add37a0e095d90597dae3e81d1ef9436fb3",
+    "reconstruction\\test_port_mapping.py": "8b95c0a15c3264bcd7e2ca94297349dad235af5b7bc67b5130cf8c012ae31bfd",
+    "reconstruction\\test_release_0843.py": "d81085526dfb3726726e450852c7610ac56f3ca2a25086deb31cdb8713925e12",
+    "reconstruction\\test_resolver_serialization.py": "da34899d49b327caa184cc0d64f248ded24ef3ac260365e685d7fe6007fc13ed",
+    "reconstruction\\test_room_acceptance.py": "6d4cb4f0abcdea90b3d17cc41339bf5a49bb272a77e0a9e9d2e9ba4f910e82b7",
+    "reconstruction\\test_room_lifecycle.py": "416e84dbb4e520e3765ead1f1389af7bc0512a5b6801a3d7c4c949542bea94b3",
+    "reconstruction\\test_runtime_addresses.py": "e796e0de8cfcd93085c234b88b2e6cba72d09ac58a9c35907f0c582de660d293",
+    "reconstruction\\test_sessions.py": "2008a7f69c594d2ad2459bfd01a8532d2564b3ebcde04c9e2064cad75e586efd",
+    "reconstruction\\test_shared_pickups.py": "25ab35a2149591c11cf0d696d9a7181e3acc6a8b7fde56350bc77b580a7510a4",
+    "reconstruction\\test_structural_mapping.py": "9aebdcce2217f5cd0c012ae8da4e34a24d5429c0ee1eeff207cdbe073dbbb921",
+    "reconstruction\\test_update_calls.py": "702867961f9a2e952b4a68e9b6f20719dd7a77380ece53dba2dc9759869d73e0",
+    "reconstruction\\test_update_observation.py": "afbfd36dad4113f63baef5117c9403efe55976787cef8b77c60ee7b6adcbe265",
+    "reconstruction\\test_updated_layout_runtime.py": "f10de4e98a0ac8a5f10fbad9d0ed7a245fb5de06027957af1ce3418dd4a008f6",
+    "reconstruction\\test_uplink_budget.py": "1c1d72080bf616436d27e3e234d297091f052d4b196831c49d79099deb0d5f4a",
+    "reconstruction\\test_visibility_bridge.py": "a18024ebd0e84b87d5308ec55a0a0d3936ce881abda772d8a6a02606d1c01563",
+    "reconstruction\\test_window_layout.py": "eb29144fb3b87936e23b6e35afc224f1b30841f906f6d7c7824db30734e67e4f",
+    "reconstruction\\test_world_packets.py": "57d15949ee4e4013cf1e8b41e8b35902b68998f101ca592bab49b1f010041795",
+    "reconstruction\\updated_layout.py": "4f9737f7aee713ae8f979285a6b493d73ec9607a7b4fb12bba9b6d3cfe5a10e6",
+    "reconstruction\\verify_boss_rewards.py": "7b1bbb8d27f25ec96b659be987fd4f2f5f9fb243c9e588beb7ff96e92f5a3e62",
+    "reconstruction\\verify_boss_visual.py": "b87f404bf7c0612bdefc34a45dfe30cdb3b923fd400a0578f374b0ca4be2b28d",
+    "reconstruction\\verify_coop.py": "f046a8f22661041e72d474a9e9505ec0d21bb778c98839fd20f58c2d8202e08f",
+    "reconstruction\\verify_debuffs.py": "f8caff5b12e486f25f67f433ffe203b072adc97b3934494bc3576eea875e3d61",
+    "reconstruction\\verify_druid_forms.py": "b01963b3cfa69cb2cd631c2a6877260f93b4d27c5127d1e618a0bc74ef1c305b",
+    "reconstruction\\verify_economy.py": "a4a70a4a78f05f2133ecfece0c1b2a6873d8575e063594d1385510b4ff442846",
+    "reconstruction\\verify_enemy_area.py": "54a9fde0f10ab465b7db90ba71e304a11c47b3e9b930d1f893f64fdbad3cac91",
+    "reconstruction\\verify_group.py": "5534bcd9afdfa15a7acb9b0c3a37e4673e52618de08ecd2ca1011164e2932466",
+    "reconstruction\\verify_group_online.py": "9e7c6fd9ee462147d3a8fa66ebe6f27254799289a898cb6bdf3044eea7a2baa4",
+    "reconstruction\\verify_guest_abilities.py": "cda94ba3d89b3763203607cab673bf8b5f494ef14809772cb96183ece155448a",
+    "reconstruction\\verify_native_combat.py": "a722bf40e5e115bfcc7a5682014e9e53122396f6b56d211d70fbb2b115bca2b7",
+    "reconstruction\\verify_native_input.py": "dcf657621ef9e025769a6e595654ddfecee1a1a3cc75498635b6da9e39202cc8",
+    "reconstruction\\verify_network_boss.py": "abe3773d6012796fb2ad8a1d93290c4162429443ce6ed3cd32e8d601b8b9f3ab",
+    "reconstruction\\verify_network_coop.py": "a9fe90f24e216c5dc37e6d0dd2e346fbeb5141f9bff4970dc60eccb691ae5e6f",
+    "reconstruction\\verify_network_economy.py": "f63f1f5fa8ef6970b9d2388f38112f7523ae03c75e50b10c4d7a8c9788c9693a",
+    "reconstruction\\verify_party_evidence.py": "886ae72ac4a3410b0befdc0af3298fb16b8237489cf9474e373831acee31d579",
+    "reconstruction\\verify_pursuit.py": "692ebbfa269b53bef3b71e943b0a1b8d7500c439bb3c0911c1112c5217cb2bd4",
+    "reconstruction\\verify_restart.py": "5b0a9d69d4593e9f38e2c0f2bf0e4225a6392c07b45a798965b19c0554345de2",
+    "reconstruction\\verify_revival.py": "f8c272d1a2ec357865b5a8692fdd0a3186df86fa05f943c2fcc8f0feafddd2a0",
+    "reconstruction\\verify_room_departure.py": "334be23481ebabec07ad7abbd15589b0e5717314f774e584fcf9a87b33b7d4c1",
+    "reconstruction\\verify_room_launch.py": "248f439f2436bf6bd681ac46d7c70afbb53d5cfa9de3542c0ab3c90a2493070d",
+    "reconstruction\\verify_save_staging.py": "82ec625fb5a1255b3cdcd76a7d87dd59047323c23838c54d2c9b3406d8593cc1",
+    "reconstruction\\verify_spawn_balance.py": "860e02e53df384cb6aa5287f1f5feba0bacf3990f9e19535cc488b6360fbf76e",
+    "reconstruction\\verify_split_spawns.py": "9ea62fde04ab98c4143223b09b80584cdeaea58741cda72ebab1476ca66b9c6c",
+    "reconstruction\\verify_surrender.py": "c648b971f2c3c8a063d61b8ca6bcf03bd399fbb07a764957ddbcd8695ac0985e",
+    "reconstruction\\verify_team_defeat.py": "50839a41cf7f6b7c02fdedf5d343625efdb13073596646bcaa5940394768719e",
+    "reconstruction\\verify_updated_core.py": "ec3c7dad05c585b1aaa737675f6a77963e28e372bf24ea777569fe1158e4c20d",
+    "reconstruction\\verify_updated_world.py": "c8bb643c2d8e12be19a5f5040d66a70d48063ae826bf8fd265869325e6d723ad",
+    "reconstruction\\verify_victory.py": "d058e484ad8ec0388b4afbce35ac71062e0381edff887acbd4ee8d22da55688a",
+    "reconstruction\\verify_victory_controls.py": "a9959381dac88e432b41d61a02c41e6603592a568f36513c1fe02e388143a1e1",
+    "reconstruction\\visibility_bridge.py": "17b06134639f15a6015abbd64100b8834d1dad279608ae5cc8cf606f5e11a22f",
+    "reconstruction\\world_packets.py": "964d8463837b628413d631963257a5f347cdee36a1cca7b3469866faa488cb9b",
+    "analysis\\check_build_hooks.py": "3cd4194f71e748ae8c2df7dba333eeba5de2023f3dd78afa08c4f88326815d67",
+    "analysis\\discover_updated_hooks.py": "447dbb5bcaccc6204e3b45e8490133b522fcccc4d8c2ec58515bc2e1f9503493",
+    "analysis\\effect_contracts.py": "c6a106b150cff7e5c8b09c50eb86b384eb35be305813f142252b5eeff30415a7",
+    "analysis\\enemy_contracts.py": "d950b451007f536c0f57d4f9e3ed6de3cfa36b2ec0f420aea77f40d35cc729eb",
+    "analysis\\inspect_exe.py": "c16208ce8cda2c89b981d95238acde68516e11348a1fe58b00bc6a6204973d0e",
+    "analysis\\inventory_native_contracts.py": "d59b5d3c9a830f78792b811e22db6d0bdc4fb4bde73f95eee2b175d100e59b79",
+    "analysis\\map_build_functions.py": "c9169e0d3661297f6e249a587e0fe92c51e89a362e8af52091fb08f678c1b942",
+    "analysis\\menu_contracts.py": "b3d13a4968db8d956d950c6b66941897ef3091ead5c118c3d218a76f68a8b5d8",
+    "analysis\\native_helper_contracts.py": "775cc49365bc6bc61187e3f81eb37967f5d0cb47ac62fe0e031d28da09ec4904",
+    "analysis\\native_input_contracts.py": "05a2904b5cb9c9b9aa20254ca91355af10f9a6f6b1d8c156cf325f3e5a10328e",
+    "analysis\\probe_native_controls.py": "2d1d55f0dfad8b12c8f4885465e07b38d4e0a3f8e284b928bb71287c65bb6c7b",
+    "analysis\\test_native_input.py": "bdd8aa109b5aa79c34c1fb811cc0364b9027916fab67eb3a3ff7f53f13e6471b",
+    "relay\\routing.py": "e6e7998ebf481c5aa6ffe3ccde37790db710666bd91d06a347baaad695c8b3e1",
+    "relay\\client.py": "74cfe9ad0de8d0a0f9610d2e9e9a3c58dbe971d34ed77ab108cad017deaa335c",
+    "relay\\server.py": "041fd368ff54150a467a1b65c2f9f21b78536ee98b4af317123c7c6ea1b2c0c5",
+    "reconstruction\\reviewed-hooks.json": "83b86feba4bf48d267b6436178b699e85d2372416674263ce51aa6fe6b03272f",
+    "analysis\\native-contract-baseline.json": "5b5332d4c5d8c769f1dd1c63134c984a462cf0f08912836f01bf21a06e15a179",
+    "reconstruction\\reference-metadata.json": "b63b4628386500daba0c74f062b16016733cce1975a52c80b8df8de1a4f247b9",
+    "reconstruction\\release-0.84.3.json": "01625154341121fff431778c4d61f1b5a5dc1108e89ba0ea933389c16c465b73",
+    "reconstruction\\release-0315cf38.json": "2dc495c6607fa5503d0dd0e47360e527b30e8f3c9ce8d05afd8d9f3e02f2d081",
+    "reconstruction\\release-47e4ab65.json": "4829e23f4d049aa418171f2b2795bb7ffd19f3d0a62ec45320474bb9d6097ca2",
+    "reconstruction\\release-7264d50b.json": "9f84872d520afa4992a7116256d7d84fc1a79f31c6ca4e7f35835ba9679064da"
+   }
+  },
+  "native_acceptance": {
+   "identity": {
+    "sha256": "7264d50b82a1ecc2b5f0fcf2f29669c2acaa8bb87c058e17898a47a12984ff30",
+    "reference_sha256": "20d4ce5fb1232dac64bc00a4d8c9f2bcae43fb8373ea3fa95350ab8c4f20d618",
+    "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "disassembler": "5.0.7",
+    "pe_parser": "2024.8.26",
+    "sources": {
+     "reconstruction\\boss_rewards.py": "6e57729146cacffb42e7c569109caaeed60e6b293e993af4272c8a068573f117",
+     "reconstruction\\build_hooks.py": "e45a7354be07906f928e7eca0675f388761710f8f8a86f83e71bf7dd96c99a7e",
+     "reconstruction\\coop_transport.py": "4702bef1493f518bf6f3dd397aa8517ab44ed55aec62ff78f25dde2b6c71083e",
+     "reconstruction\\crash_reports.py": "58d025727ad5a1bfb81307a49d777a33fbf369f6661c3e276651c217b33362c8",
+     "reconstruction\\group_online.py": "03e2870411760a11292fc185a060df88803894baafefd2081edacd5573393dab",
+     "reconstruction\\guest_auras.py": "21a76b241715790ac6eec38ff04f9fe290bc9391e9005b4252866ecab63b06f6",
+     "reconstruction\\launcher_profile.py": "f3b7dad1d34c220f0eb45f09a04bbb7c9b3748f08227d826591383028d29f209",
+     "reconstruction\\lobby.py": "edc5e2e6971e5f6f45e7519b6b1ca85ee82bd41df2914609e43c48df55cc8286",
+     "reconstruction\\lobby_server.py": "eee5ce72951742a93d424077fb690fa0d8de3d33e3f96d5941950cc0684075bb",
+     "reconstruction\\loop_profile.py": "5da9690f47cc052052be201f97f9750ff0d691a2d995290f4ac6cf1729ca088b",
+     "reconstruction\\native_guest_combat.py": "2f84b569f24c9e2e1c6aa7b8dced46407746eab58e33a8de974255646eb907a5",
+     "reconstruction\\native_probe.py": "8f9f09d64dd4907dbb11e820a5bda88ff94589288348ef97616a9590d329a818",
+     "reconstruction\\native_test_process.py": "03694ac00ee31bfbf4cdc99af68eb77a082d609b2ba2c9db967cdd9d9502663b",
+     "reconstruction\\native_window_layout.py": "674345ee5d93bd0e0de558f66e13b224bfdff8acaa5a839111e5b12986bac531",
+     "reconstruction\\online_bridge.py": "6003e05c172c1539016c4b5ae23cf8985c7c3c52d2e647dbeb8e1fc9c47ef4ae",
+     "reconstruction\\party_markers.py": "93ffc8f627e0a978243ea2a1dac6517a941623caa3c46e93c20310c875607ba5",
+     "reconstruction\\party_menu.py": "907b73572f1b40770a9467f3feb7bd5dae1e81c6fd7f36521417ca99a4f546d4",
+     "reconstruction\\personal_save.py": "b2c4c46bc8f500a82d2470436d0060aa17914a3725146fcf06a4783a643dc76f",
+     "reconstruction\\play_limits.py": "1a39a5a43a7d7e58160f5b59b4d6dc6273c4c37ddfcab073e7cb0bfd08fa4fba",
+     "reconstruction\\port_mapping.py": "40beb51eb338bf978bae474e88551501c9570b18e0aa3c413f95e00fa7444b47",
+     "reconstruction\\probe_native_menu.py": "33e30fad55639246c0bd985527365035d7a9417813d5320f81e9d0241a04d154",
+     "reconstruction\\room_client.py": "ef6484f410d68c49c8d1ecf9a4540fc7579e63ff62202e216fcb1a446eefecbf",
+     "reconstruction\\runtime_addresses.py": "30edf9e6012da3b030dfc4a747a6fc284b61ea975a07c726b9edf4d9d189aad7",
+     "reconstruction\\self_update.py": "0f4687a96bf005fc2df9bb4406a17ad6f8d2614e359b5d3af76e4f5b123f594c",
+     "reconstruction\\sessions.py": "ec98c8c0674da749b7cc9ebfb688f1cbf4b420267a38eedd6be4a94177f19433",
+     "reconstruction\\test_automatic_observation.py": "a27c20b520906e7f35f9f69692a1258077211a7565a60c73bfdc46b10f57aff3",
+     "reconstruction\\test_boss_rewards.py": "7c0c64eaa5bd36de7c0fbb6cac47102c9eb0aca5b04487586d35b5a3d55c1d17",
+     "reconstruction\\test_build_discovery.py": "53f55cfd7743da14bda622409e9aad0d4a5787ab11e83b44c3dfe9f2f47a24c0",
+     "reconstruction\\test_candidate_rooms.py": "d843e10c4fa05e285d990dd9017bd340924b9802dbbc9b0ae59b76cdfd54c443",
+     "reconstruction\\test_character_names.py": "d9b78cf0252167dca8a133e02b084be791cc8eb6949d0f78ac24d7e8ca6e7bee",
+     "reconstruction\\test_completed_reports.py": "e3cb04d7e4bbb49afc5c394e6622d492672d7f5dd6d2f389aa2c9d22d4b518ed",
+     "reconstruction\\test_coop_transport.py": "b9c587444794b04702b8a078fa1bc3bd7d8088688cd686a2e448f26fbd5396d2",
+     "reconstruction\\test_crash_reports.py": "f0795500e7be5cc2b1250a14ef0f69929653572e5684616358042688ade74f78",
+     "reconstruction\\test_downed_fix.py": "c1cbfccb7365c1d21bd9deeca888cfd069f40753de9a2512d9a388c697f29030",
+     "reconstruction\\test_drain_order.py": "aa6c7a854f047a0b3be919017b91c5f9eaafb5268819afcbc85dd610dc9337f5",
+     "reconstruction\\test_dynamic_objects.py": "799eebf7a419ccbfb11eb24f1641af98b7b6931861214828d7aeef83691d1bdc",
+     "reconstruction\\test_effect_contracts.py": "2f034e42b2c783300ed074c61f4e496cbe9cd02c8bdc9eb491267c47c5689a5b",
+     "reconstruction\\test_encounter_rewards.py": "6e0423f813e4f4c90b7ac093223db73993f7a9209db2e04008e7f5d55b0da77e",
+     "reconstruction\\test_field_discovery.py": "81970837863130fa0c7b4c9b2883119c2dbc5975a26452c1631735e513cb91c4",
+     "reconstruction\\test_gear_observation.py": "c6dbb6176c1c1e308334352294034cd36c6d081774c9c173aaf31d2d44eaf7ff",
+     "reconstruction\\test_group.py": "f42139fdb500bec71aafc5d3308643d2bb4968368a5a44c77b95013472a51e0e",
+     "reconstruction\\test_guest_fixes.py": "8b1718223521608d5cc86d9e591b6d94cd24b5a55bc849f9849c6de19b6396ef",
+     "reconstruction\\test_incoming_hits.py": "18774f4ef36959b21380088cba96a57c67b595ff1733b3c61a122fcfc15381f9",
+     "reconstruction\\test_jump_totems.py": "ae172d666c7ffc9e5d2e50be24f730513fda571ae7cc781e89772f5ca6b54e65",
+     "reconstruction\\test_latency.py": "964f374015ee673afd81837710b2978a1ee8ce057cae3e87b334dc24bfcf7a03",
+     "reconstruction\\test_launcher_profile.py": "726ef0ba1be75be9e6f9d11d177f627e08571f997afeb682f18978e1add8fbaa",
+     "reconstruction\\test_live_guards.py": "c6c57e79865a3de92799d9df5a21d5116b49036543cb41f2c2df73fe2d51b9e1",
+     "reconstruction\\test_lobby.py": "d1dd45249dd6828405879dfba07e69ee446252126b5fcea6f2474ee4676a2242",
+     "reconstruction\\test_lobby_chat.py": "68b00bf48469709137cb4722e4ad70fb65d3dee508d8678b12318a9538383e2a",
+     "reconstruction\\test_lobby_errors.py": "8873dbc2c90ddaa148f10cd4e53efff15a1c29ed23f8f5376dff62b38f1e3c21",
+     "reconstruction\\test_lobby_versions.py": "e5f597fde74fde6f069eeb8fd9ab476272f72925cb1afb27a1d18afffa325801",
+     "reconstruction\\test_loop_relief.py": "5dd8e2751cce2445aed6e9fbd0c46013e25e5bedf1541c0c2890d803d664c35d",
+     "reconstruction\\test_map_selection_layout.py": "87e3cfb3b366d79c5a5ad3df22ce14bf5ae497c1379ce80e2995fdf70984015e",
+     "reconstruction\\test_menu_contracts.py": "6dfab88fc7e9fec1bbf960f7ca25ba08cd396fda891808f204573b365697e6f7",
+     "reconstruction\\test_native_fields.py": "4968317af21db22bc52a4b35a089bb7dea68112509284e114d9ae0dbf591b0fd",
+     "reconstruction\\test_native_helpers.py": "f8b81a9976e86a75ba698e10b02610f321c183de8ca385895533063b822983f0",
+     "reconstruction\\test_native_inventory.py": "21a456ed5dd0ca4bd9a0e5cdad140e04877817fc5eff6772c00adb09883b9760",
+     "reconstruction\\test_native_runtime_mapping.py": "8844a59b5cdddc0525d1b6aee1e87026c0272d35bc6c2bdfc2c992bc03d2ddec",
+     "reconstruction\\test_native_shutdown.py": "975f1b40fd878b93dfbf17a6620cf622015a2b0610008d9eaf996aba2f3f1062",
+     "reconstruction\\test_native_test_process.py": "5ba016d6fe181c560fc06ebadd68454904c86c4053520806eeea59b8d982b4e1",
+     "reconstruction\\test_network_boss_acceptance.py": "c022f77f6a7a536c85889ecc83a1790d8a171cbcff8726681a0df7ea854f34b9",
+     "reconstruction\\test_party_departure.py": "28f37c87e8fac9912716f4255998354342830e62594d6f57b94ead7eac3489c1",
+     "reconstruction\\test_party_economy.py": "6dca6c47fc9b876f7a9d2f70c22185c137f04235841e9bebc65962f98e529542",
+     "reconstruction\\test_party_evidence.py": "be6420a45c41282e0238e92b852c24c51b40d8bc12ac2b11fbb75e1165e53320",
+     "reconstruction\\test_party_markers.py": "4330cfc3e25afe265bc460a4c94259bf97e709803580640125b907d4c62280f3",
+     "reconstruction\\test_party_menu.py": "ee867f991939bece6e4c4d66556a3b23b01611bbf5f655bf4042509c0d933b57",
+     "reconstruction\\test_personal_save.py": "50973d6034441cc4db0f4b95995a1add37a0e095d90597dae3e81d1ef9436fb3",
+     "reconstruction\\test_port_mapping.py": "8b95c0a15c3264bcd7e2ca94297349dad235af5b7bc67b5130cf8c012ae31bfd",
+     "reconstruction\\test_release_0843.py": "d81085526dfb3726726e450852c7610ac56f3ca2a25086deb31cdb8713925e12",
+     "reconstruction\\test_resolver_serialization.py": "da34899d49b327caa184cc0d64f248ded24ef3ac260365e685d7fe6007fc13ed",
+     "reconstruction\\test_room_acceptance.py": "6d4cb4f0abcdea90b3d17cc41339bf5a49bb272a77e0a9e9d2e9ba4f910e82b7",
+     "reconstruction\\test_room_lifecycle.py": "416e84dbb4e520e3765ead1f1389af7bc0512a5b6801a3d7c4c949542bea94b3",
+     "reconstruction\\test_runtime_addresses.py": "e796e0de8cfcd93085c234b88b2e6cba72d09ac58a9c35907f0c582de660d293",
+     "reconstruction\\test_sessions.py": "2008a7f69c594d2ad2459bfd01a8532d2564b3ebcde04c9e2064cad75e586efd",
+     "reconstruction\\test_shared_pickups.py": "25ab35a2149591c11cf0d696d9a7181e3acc6a8b7fde56350bc77b580a7510a4",
+     "reconstruction\\test_structural_mapping.py": "9aebdcce2217f5cd0c012ae8da4e34a24d5429c0ee1eeff207cdbe073dbbb921",
+     "reconstruction\\test_update_calls.py": "702867961f9a2e952b4a68e9b6f20719dd7a77380ece53dba2dc9759869d73e0",
+     "reconstruction\\test_update_observation.py": "afbfd36dad4113f63baef5117c9403efe55976787cef8b77c60ee7b6adcbe265",
+     "reconstruction\\test_updated_layout_runtime.py": "f10de4e98a0ac8a5f10fbad9d0ed7a245fb5de06027957af1ce3418dd4a008f6",
+     "reconstruction\\test_uplink_budget.py": "1c1d72080bf616436d27e3e234d297091f052d4b196831c49d79099deb0d5f4a",
+     "reconstruction\\test_visibility_bridge.py": "a18024ebd0e84b87d5308ec55a0a0d3936ce881abda772d8a6a02606d1c01563",
+     "reconstruction\\test_window_layout.py": "eb29144fb3b87936e23b6e35afc224f1b30841f906f6d7c7824db30734e67e4f",
+     "reconstruction\\test_world_packets.py": "57d15949ee4e4013cf1e8b41e8b35902b68998f101ca592bab49b1f010041795",
+     "reconstruction\\updated_layout.py": "4f9737f7aee713ae8f979285a6b493d73ec9607a7b4fb12bba9b6d3cfe5a10e6",
+     "reconstruction\\verify_boss_rewards.py": "7b1bbb8d27f25ec96b659be987fd4f2f5f9fb243c9e588beb7ff96e92f5a3e62",
+     "reconstruction\\verify_boss_visual.py": "b87f404bf7c0612bdefc34a45dfe30cdb3b923fd400a0578f374b0ca4be2b28d",
+     "reconstruction\\verify_coop.py": "f046a8f22661041e72d474a9e9505ec0d21bb778c98839fd20f58c2d8202e08f",
+     "reconstruction\\verify_debuffs.py": "f8caff5b12e486f25f67f433ffe203b072adc97b3934494bc3576eea875e3d61",
+     "reconstruction\\verify_druid_forms.py": "b01963b3cfa69cb2cd631c2a6877260f93b4d27c5127d1e618a0bc74ef1c305b",
+     "reconstruction\\verify_economy.py": "a4a70a4a78f05f2133ecfece0c1b2a6873d8575e063594d1385510b4ff442846",
+     "reconstruction\\verify_enemy_area.py": "54a9fde0f10ab465b7db90ba71e304a11c47b3e9b930d1f893f64fdbad3cac91",
+     "reconstruction\\verify_group.py": "5534bcd9afdfa15a7acb9b0c3a37e4673e52618de08ecd2ca1011164e2932466",
+     "reconstruction\\verify_group_online.py": "9e7c6fd9ee462147d3a8fa66ebe6f27254799289a898cb6bdf3044eea7a2baa4",
+     "reconstruction\\verify_guest_abilities.py": "cda94ba3d89b3763203607cab673bf8b5f494ef14809772cb96183ece155448a",
+     "reconstruction\\verify_native_combat.py": "a722bf40e5e115bfcc7a5682014e9e53122396f6b56d211d70fbb2b115bca2b7",
+     "reconstruction\\verify_native_input.py": "dcf657621ef9e025769a6e595654ddfecee1a1a3cc75498635b6da9e39202cc8",
+     "reconstruction\\verify_network_boss.py": "abe3773d6012796fb2ad8a1d93290c4162429443ce6ed3cd32e8d601b8b9f3ab",
+     "reconstruction\\verify_network_coop.py": "a9fe90f24e216c5dc37e6d0dd2e346fbeb5141f9bff4970dc60eccb691ae5e6f",
+     "reconstruction\\verify_network_economy.py": "f63f1f5fa8ef6970b9d2388f38112f7523ae03c75e50b10c4d7a8c9788c9693a",
+     "reconstruction\\verify_party_evidence.py": "886ae72ac4a3410b0befdc0af3298fb16b8237489cf9474e373831acee31d579",
+     "reconstruction\\verify_pursuit.py": "692ebbfa269b53bef3b71e943b0a1b8d7500c439bb3c0911c1112c5217cb2bd4",
+     "reconstruction\\verify_restart.py": "5b0a9d69d4593e9f38e2c0f2bf0e4225a6392c07b45a798965b19c0554345de2",
+     "reconstruction\\verify_revival.py": "f8c272d1a2ec357865b5a8692fdd0a3186df86fa05f943c2fcc8f0feafddd2a0",
+     "reconstruction\\verify_room_departure.py": "334be23481ebabec07ad7abbd15589b0e5717314f774e584fcf9a87b33b7d4c1",
+     "reconstruction\\verify_room_launch.py": "248f439f2436bf6bd681ac46d7c70afbb53d5cfa9de3542c0ab3c90a2493070d",
+     "reconstruction\\verify_save_staging.py": "82ec625fb5a1255b3cdcd76a7d87dd59047323c23838c54d2c9b3406d8593cc1",
+     "reconstruction\\verify_spawn_balance.py": "860e02e53df384cb6aa5287f1f5feba0bacf3990f9e19535cc488b6360fbf76e",
+     "reconstruction\\verify_split_spawns.py": "9ea62fde04ab98c4143223b09b80584cdeaea58741cda72ebab1476ca66b9c6c",
+     "reconstruction\\verify_surrender.py": "c648b971f2c3c8a063d61b8ca6bcf03bd399fbb07a764957ddbcd8695ac0985e",
+     "reconstruction\\verify_team_defeat.py": "50839a41cf7f6b7c02fdedf5d343625efdb13073596646bcaa5940394768719e",
+     "reconstruction\\verify_updated_core.py": "ec3c7dad05c585b1aaa737675f6a77963e28e372bf24ea777569fe1158e4c20d",
+     "reconstruction\\verify_updated_world.py": "c8bb643c2d8e12be19a5f5040d66a70d48063ae826bf8fd265869325e6d723ad",
+     "reconstruction\\verify_victory.py": "d058e484ad8ec0388b4afbce35ac71062e0381edff887acbd4ee8d22da55688a",
+     "reconstruction\\verify_victory_controls.py": "a9959381dac88e432b41d61a02c41e6603592a568f36513c1fe02e388143a1e1",
+     "reconstruction\\visibility_bridge.py": "17b06134639f15a6015abbd64100b8834d1dad279608ae5cc8cf606f5e11a22f",
+     "reconstruction\\world_packets.py": "964d8463837b628413d631963257a5f347cdee36a1cca7b3469866faa488cb9b",
+     "analysis\\check_build_hooks.py": "3cd4194f71e748ae8c2df7dba333eeba5de2023f3dd78afa08c4f88326815d67",
+     "analysis\\discover_updated_hooks.py": "447dbb5bcaccc6204e3b45e8490133b522fcccc4d8c2ec58515bc2e1f9503493",
+     "analysis\\effect_contracts.py": "c6a106b150cff7e5c8b09c50eb86b384eb35be305813f142252b5eeff30415a7",
+     "analysis\\enemy_contracts.py": "d950b451007f536c0f57d4f9e3ed6de3cfa36b2ec0f420aea77f40d35cc729eb",
+     "analysis\\inspect_exe.py": "c16208ce8cda2c89b981d95238acde68516e11348a1fe58b00bc6a6204973d0e",
+     "analysis\\inventory_native_contracts.py": "d59b5d3c9a830f78792b811e22db6d0bdc4fb4bde73f95eee2b175d100e59b79",
+     "analysis\\map_build_functions.py": "c9169e0d3661297f6e249a587e0fe92c51e89a362e8af52091fb08f678c1b942",
+     "analysis\\menu_contracts.py": "b3d13a4968db8d956d950c6b66941897ef3091ead5c118c3d218a76f68a8b5d8",
+     "analysis\\native_helper_contracts.py": "775cc49365bc6bc61187e3f81eb37967f5d0cb47ac62fe0e031d28da09ec4904",
+     "analysis\\native_input_contracts.py": "05a2904b5cb9c9b9aa20254ca91355af10f9a6f6b1d8c156cf325f3e5a10328e",
+     "analysis\\probe_native_controls.py": "2d1d55f0dfad8b12c8f4885465e07b38d4e0a3f8e284b928bb71287c65bb6c7b",
+     "analysis\\test_native_input.py": "bdd8aa109b5aa79c34c1fb811cc0364b9027916fab67eb3a3ff7f53f13e6471b",
+     "relay\\routing.py": "e6e7998ebf481c5aa6ffe3ccde37790db710666bd91d06a347baaad695c8b3e1",
+     "relay\\client.py": "74cfe9ad0de8d0a0f9610d2e9e9a3c58dbe971d34ed77ab108cad017deaa335c",
+     "relay\\server.py": "041fd368ff54150a467a1b65c2f9f21b78536ee98b4af317123c7c6ea1b2c0c5",
+     "reconstruction\\reviewed-hooks.json": "83b86feba4bf48d267b6436178b699e85d2372416674263ce51aa6fe6b03272f",
+     "analysis\\native-contract-baseline.json": "5b5332d4c5d8c769f1dd1c63134c984a462cf0f08912836f01bf21a06e15a179",
+     "reconstruction\\reference-metadata.json": "b63b4628386500daba0c74f062b16016733cce1975a52c80b8df8de1a4f247b9",
+     "reconstruction\\release-0.84.3.json": "01625154341121fff431778c4d61f1b5a5dc1108e89ba0ea933389c16c465b73",
+     "reconstruction\\release-0315cf38.json": "2dc495c6607fa5503d0dd0e47360e527b30e8f3c9ce8d05afd8d9f3e02f2d081",
+     "reconstruction\\release-47e4ab65.json": "4829e23f4d049aa418171f2b2795bb7ffd19f3d0a62ec45320474bb9d6097ca2",
+     "reconstruction\\release-7264d50b.json": "9f84872d520afa4992a7116256d7d84fc1a79f31c6ca4e7f35835ba9679064da"
+    }
+   },
+   "runs": [
+    {
+     "name": "pause-revival",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\pause-revival-35s61b6i",
+     "seconds": 40
+    },
+    {
+     "name": "boss-rewards",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\boss-rewards-383j6tof",
+     "seconds": 77
+    },
+    {
+     "name": "room-menus",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\room-menus-len_c6pa",
+     "seconds": 36
+    },
+    {
+     "name": "room-gear",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\room-gear-0gowatwq",
+     "seconds": 46
+    },
+    {
+     "name": "menu-departure",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\menu-departure-a21pp5xa",
+     "seconds": 24
+    },
+    {
+     "name": "movement",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\movement-jcny9b3d",
+     "seconds": 126
+    },
+    {
+     "name": "economy",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\economy-15zsnxj2",
+     "seconds": 16
+    },
+    {
+     "name": "victory-continue",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\victory-continue-5z8buhdc",
+     "seconds": 50
+    },
+    {
+     "name": "victory-new-hero",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\victory-new-hero-buhmt255",
+     "seconds": 53
+    },
+    {
+     "name": "druid-forms",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\druid-forms-sa_eiofl",
+     "seconds": 64
+    },
+    {
+     "name": "surrender",
+     "passed": true,
+     "evidence": "coop-lab\\compatibility-tests\\surrender-x4v9_m8u",
+     "seconds": 79
+    }
+   ],
+   "cases": {
+    "pause_resume": "passed",
+    "revival": "passed",
+    "shared_xp": "passed",
+    "four_player_combat": "passed",
+    "independent_talents": "passed",
+    "bosses": "passed",
+    "independent_loot": "passed",
+    "map_progression": "passed",
+    "saves": "passed",
+    "concurrent_menus": "passed",
+    "host_map": "passed",
+    "class_gear_selection": "passed",
+    "guest_departure": "passed",
+    "host_shutdown": "passed",
+    "four_player_movement": "passed",
+    "shared_gold": "passed",
+    "victory_keep_fighting": "passed",
+    "victory_new_hero": "passed",
+    "druid_forms": "passed",
+    "surrender": "passed"
+   },
+   "failures": []
+  }
+ },
+ "menu_contract": {
+  "sha256": "7264d50b82a1ecc2b5f0fcf2f29669c2acaa8bb87c058e17898a47a12984ff30",
+  "reference_sha256": "20d4ce5fb1232dac64bc00a4d8c9f2bcae43fb8373ea3fa95350ab8c4f20d618",
+  "automatic_activation_allowed": false,
+  "variant": "borrowed_map_predicate",
+  "ui_command": 88278160,
+  "command_tags": {
+   "8": 88279996,
+   "9": 88280774,
+   "11": 88278965
+  },
+  "map_select": 88164544,
+  "map_selection": {
+   "reference": 87664256,
+   "candidate": 88164544,
+   "lookup_offset": 208,
+   "lookup_size": 24,
+   "reference_layout": {
+    "stride": 160,
+    "name_pointer": 0,
+    "name_length": 8,
+    "table": 107179872
+   },
+   "candidate_layout": {
+    "stride": 184,
+    "name_pointer": 8,
+    "name_length": 16,
+    "table": 107939792
+   },
+   "names": [
+    "elwynn",
+    "duskwood",
+    "wsg",
+    "ab",
+    "feralas",
+    "arena",
+    "av",
+    "brm",
+    "aq"
+   ],
+   "map_name_lookup_verified": true,
+   "automatic_activation_allowed": false,
+   "scope": "Nine map names and native selection logic only; external dependencies require separate proof"
+  },
+  "host_map_return": 88279045,
+  "enter_contract": {
+   "call": 88279040,
+   "return_site": 88279045,
+   "map_select": 88164544,
+   "account_server_offset": 2472,
+   "config_stack_offset": 2304,
+   "result_stack_offset": 4688,
+   "arguments": {
+    "rcx": "result",
+    "rdx": "account",
+    "r8": "config"
+   }
+  },
+  "baseline_enter": {
+   "call": 87865337,
+   "return_site": 87865342,
+   "map_select": 87664256,
+   "account_server_offset": 2344,
+   "config_stack_offset": 2176,
+   "result_stack_offset": 4432,
+   "arguments": {
+    "rcx": "result",
+    "rdx": "account",
+    "r8": "config"
+   }
+  },
+  "login_predicate": {
+   "entry": 88165008,
+   "map_index": 88054672,
+   "arguments": {
+    "rcx": "account",
+    "edx": "class",
+    "r8": "map_pointer",
+    "r9": "map_length"
+   },
+   "result": "al",
+   "unlock_pointer": 32,
+   "unlock_count": 40,
+   "unlock_stride": 16,
+   "maximum": 9
+  },
+  "login": {
+   "function": 88241712,
+   "predicate": 88165008,
+   "call": 88248309,
+   "branch": 88248317,
+   "expected": "757e",
+   "replacement": "eb7e",
+   "continuation": 88248445,
+   "account_server_offset": 2472,
+   "class_stack_offset": 8449,
+   "requested_map_register": "r15",
+   "requested_length_stack": 8808,
+   "connection_vector_server_offset": 2456,
+   "connection_map_pointer": 152,
+   "connection_map_length": 160,
+   "ownership": "borrowed native map strings; fallback bypass changes control flow only"
+  },
+  "command_destructor": {
+   "entry": 582432,
+   "equivalent_aliases": [
+    582432,
+    1212096,
+    88063024,
+    89036512,
+    89036512
+   ],
+   "variant": "trimmed-command-switch",
+   "expected": "41565657534883ec28",
+   "external_dependencies": [
+    8656
+   ]
+  },
+  "account_config": {
+   "proof": "complete MAP_SELECT logic, typed map-name lookup, unchanged account/config fields and native predicate semantics",
+   "account": {
+    "unlock_pointer": 32,
+    "unlock_count": 40,
+    "unlock_stride": 16,
+    "entry_class": 0,
+    "entry_unlocked_count": 8,
+    "minimum": 1,
+    "maximum": 9
+   },
+   "config": {
+    "map_pointer": 32,
+    "map_length": 40,
+    "class_id": 56
+   },
+   "arguments": {
+    "rcx": "result",
+    "rdx": "account",
+    "r8": "config"
+   }
+  },
+  "victory_cases": "nicht zur Laufzeit benutzt; nicht neu erzeugt",
+  "menu_contract_verified": true,
+  "map_clamp": {
+   "site": 88164601,
+   "expected": "488b4b20488b532848c1e2044531c00f1f8400",
+   "allocation_path": 88164752
+  },
+  "unresolved": [
+   "Complete candidate adapter proof including native allocator dependency"
+  ],
+  "enter_tag": 11
+ },
+ "progression_call_contract": {
+  "reference_sha256": "20d4ce5fb1232dac64bc00a4d8c9f2bcae43fb8373ea3fa95350ab8c4f20d618",
+  "fields": {
+   "level": {
+    "offset": 1016,
+    "width": 4,
+    "reviewed_offset": 1192
+   },
+   "xp": {
+    "offset": 1020,
+    "width": 4,
+    "reviewed_offset": 1196
+   },
+   "phase": {
+    "offset": 2383,
+    "width": 1,
+    "reviewed_offset": 2255
+   },
+   "choices_pointer": {
+    "offset": 1392,
+    "width": 8,
+    "reviewed_offset": 1568
+   },
+   "choices_count": {
+    "offset": 1400,
+    "width": 8,
+    "reviewed_offset": 1576
+   },
+   "choice_kind": {
+    "offset": 2381,
+    "width": 1,
+    "reviewed_offset": 2254
+   },
+   "abilities_capacity": {
+    "offset": 656,
+    "width": 8,
+    "reviewed_offset": 856
+   },
+   "abilities_pointer": {
+    "offset": 664,
+    "width": 8,
+    "reviewed_offset": 864
+   },
+   "abilities_count": {
+    "offset": 672,
+    "width": 8,
+    "reviewed_offset": 872
+   },
+   "pending_talents": {
+    "offset": 2268,
+    "width": 4,
+    "reviewed_offset": 2160
+   },
+   "pending_chests": {
+    "offset": 2272,
+    "width": 4,
+    "reviewed_offset": 2164
+   },
+   "pending_rewards": {
+    "offset": 2276,
+    "width": 4,
+    "reviewed_offset": 2168
+   }
+  },
+  "choice_stride": 160,
+  "choice_title": {
+   "capacity": 0,
+   "pointer": 8,
+   "length": 16,
+   "width": 8,
+   "max_bytes": 1024,
+   "ownership": "native String24; borrowed read only",
+   "runtime_role": "Require exact equality with the selected native UI offer title before CHOOSE"
+  },
+  "pending_by_choice_kind": {
+   "0": "pending_talents",
+   "1": "pending_chests",
+   "2": "pending_rewards"
+  },
+  "ability_contract": {
+   "stride": 88,
+   "definition_pointer": 0,
+   "rank_offset": 8,
+   "rank_width": 4,
+   "definitions_rva": 107952416,
+   "definitions_count": 111,
+   "definition_stride": 120,
+   "name_pointer": 16,
+   "name_length": 24,
+   "new_rank": 1,
+   "offered_ui": {
+    "type": "choices",
+    "array": "choices",
+    "kind": "new",
+    "title_prefix": "New: "
+   },
+   "upgrade_ui": {
+    "kind": "upgrade",
+    "title_format": "{name} rank {rank}",
+    "rank_delta": 1,
+    "rank_delta_source": {
+     "choice_capacity_offset": 120,
+     "choice_pointer_offset": 128,
+     "choice_count_offset": 136,
+     "ability_index_offset": 144,
+     "element_size": 1,
+     "allowed_tags": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "capacity_max_exclusive": 9223372036854775808,
+     "rank_offset": 8,
+     "rank_width": 4,
+     "formula": "previous_native_rank + selected_choice_tag_count"
+    },
+    "requires": "Exact current title equals existing+1; native rank increases by selected stat-tag count; all other abilities unchanged"
+   },
+   "consumption_ui": {
+    "type": "resume"
+   }
+  },
+  "sha256": "7264d50b82a1ecc2b5f0fcf2f29669c2acaa8bb87c058e17898a47a12984ff30",
+  "entries": {
+   "CHOOSE": {
+    "entry": 88719360
+   },
+   "AWARD_XP": {
+    "entry": 88527936
+   }
+  },
+  "review_method": "Exact-release diagnostic fields; native titles, ranks and pending consumption checked on every choice",
+  "layouts_verified": true
+ }
+}

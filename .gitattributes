@@ -1,0 +1,3 @@
+# Exact bytes in every checkout (also with core.autocrlf=true): hash-pinned files such as
+# reconstruction/reference-metadata.json must keep their committed LF bytes.
+* -text
