@@ -1,5 +1,4 @@
 """Start the room browser with the EU, US or OCE room directory (asked at start, remembered)."""
-from base64 import b64decode
 import argparse
 import os
 from pathlib import Path
@@ -10,10 +9,10 @@ import threading
 import time
 from urllib.parse import urlsplit
 
-# Obfuscation only: the destination remains discoverable at runtime.
 # Order = menu numbers [1], [2], [3]; the first letter of each key also selects it.
+# All three directories run on our own servers (EU since 0.0.19).
 REGIONS = {
-    'eu': ('EU', b64decode('aHR0cHM6Ly9kYXNoMjgxMi5kZQ==').decode('ascii')),
+    'eu': ('EU', 'https://lobby.azsurvivors-eu.duckdns.org'),
     'us': ('US', 'https://lobby.azsurvivors.duckdns.org'),
     'oce': ('OCE', 'https://lobby.azsurvivors-oce.duckdns.org'),
 }

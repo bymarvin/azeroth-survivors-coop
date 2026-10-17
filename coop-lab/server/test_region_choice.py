@@ -51,6 +51,12 @@ class ChoiceTests(unittest.TestCase):
         self.assertEqual(self.choose('us', '1')[0], ('eu', 'key'))
         self.assertEqual(self.choose('eu', 'U')[0], ('us', 'key'))
 
+    def test_all_directories_are_our_own_servers(self):
+        hosts = {key: url.split('/')[2] for key, (_, url) in launcher.REGIONS.items()}
+        self.assertEqual(hosts, {'eu': 'lobby.azsurvivors-eu.duckdns.org', 'us': 'lobby.azsurvivors.duckdns.org',
+                                 'oce': 'lobby.azsurvivors-oce.duckdns.org'})
+        self.assertNotIn('dash2812', (ROOT / 'coop_launcher.py').read_text(encoding='utf-8'))
+
     def test_oce_is_the_third_choice_with_its_latency(self):
         self.assertEqual(self.choose('eu', '3')[0], ('oce', 'key'))
         self.assertEqual(self.choose('us', 'O')[0], ('oce', 'key'))
