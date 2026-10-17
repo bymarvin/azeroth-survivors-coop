@@ -15,12 +15,14 @@ from collections import deque
 
 from native_probe import ROOT, TICK, SERIALIZE, WRITE, PAUSE, RESUME, START, AWARD_XP, CHOOSE, DAMAGE, MOVE, HURT, DEFEAT_UI, UI_COMMAND, allocate, checked, q, run
 from native_probe import CONNECTIONS, game_field
-from play_limits import (MAX_COUNTER, MAX_ENEMIES, MAX_ENEMY_HP, MAX_NATIVE_OBJECTS, MAX_QUEUE, MAX_WORLD_BACKLOG,
+from play_limits import (MAX_CLASS_ENTRIES, MAX_COUNTER, MAX_ENEMIES, MAX_ENEMY_HP, MAX_NATIVE_OBJECTS, MAX_QUEUE,
+                         MAX_WORLD_BACKLOG,
                          MAX_WORLD_OBJECTS, u32_part)
 from play_limits import MAX_HIT_DAMAGE  # noqa: F401 (re-exported: queue folding and tests)
 from updated_layout import (UPDATED, rva as relocated, phase_gate, reviewed_rva,
                             reviewed_bytes, expected_bytes, branch as native_branch, reviewed_branch,
-                            field, code_fields, release_0843, release_47e4, release_7264, enemy_layout, family)
+                            field, code_fields, release_0843, release_47e4, release_7264, enemy_layout, family,
+                            result_evaluation)
 from sessions import ClientFrames, HeaderCipher, HEARTBEAT, LOGIN, MOVEMENT_OPCODES, Pose, ProtocolError, SessionRouter, decode_ground_movement
 from world_packets import WORLD, UPDATE, DESTROY, MONSTER, objects, object_packet, remap_combat, SELF, PROGRESSION, values_packet, Reader, dynamic_object, DISPLAY_ID, HOST, FORM_DISPLAYS
 
@@ -672,6 +674,9 @@ class Bridge:
         self.revive_progress = {}
         self.revive_status = {}
         self.downed = set()
+        self.result_xp = {}  # player -> class XP of its account at run start (no credit of this run in it)
+        self.result_open = {}  # player -> (class, fall credit taken back at a revival, not yet re-earned)
+        self.result_notes = set()
         self.raid_assignments = {n: n - 1 for n in self.members}
         self.raid_sent, self.minimap_sent = {}, {}
         self.team_defeat = set()
@@ -1201,6 +1206,8 @@ class Bridge:
             self.check_loading()
             state = native_progress_state(client, number in self.ready)
             phase, level, xp, pending = state
+            if self.draining and number in self.result_open:
+                self.keep_open_result(client)  # The run ends here without another evaluation of it.
             if number == 1 and number in self.ready:
                 self.host_clock = struct.unpack('<f', client.memory(game + game_field(0x85C), 4))[0]
             elif number in self.ready:
@@ -1225,20 +1232,14 @@ class Bridge:
                     self.record(event='native_talent_spent', player=number, count=previous[3] - pending,
                                 remaining=pending, level=level)
                 self.native_states[number] = state
+                if phase in (1, 2, 3) and (previous is None or previous[0] in (0, 5)):
+                    self.remember_result_xp(client)  # Run start, or playing on after a victory.
                 self.record(event='native_state', player=number, phase=phase, level=level, xp=xp, talents_due=pending)
                 self.native_phase_changed(client, number, previous, state)
             if len(self.loaded) == len(self.members) and number in self.ready and phase == 0:
                 client.call_before(context, START, game)
                 return
-            pending_xp = self.xp_pending if number == 2 else self.xp_queues.get(number, 0)
-            if number != 1 and phase in (1, 2, 3, 4) and pending_xp:
-                amount = u32_part(pending_xp)  # One native u32 award; the rest next batch.
-                if number == 2:
-                    self.xp_pending -= amount
-                else:
-                    self.xp_queues[number] -= amount
-                client.call_before(context, AWARD_XP, game, amount)
-                self.record(event='native_xp_mirrored', amount=amount)
+            if self.mirror_xp(client, context, phase):
                 return
         if number in self.pause_pending and number in self.ready:
             paused = self.pause_pending[number]
@@ -1439,6 +1440,104 @@ class Bridge:
             owed += struct.unpack('<I', client.memory(game + guardian_counters()[1], 4))[0]
         return owed
 
+    def mirror_xp(self, client, context, phase):
+        """The host's run XP on a guest, also while it is down (phase 4): revived, it is on the team's level."""
+        number = client.number
+        pending_xp = self.xp_pending if number == 2 else self.xp_queues.get(number, 0)
+        if number == 1 or phase not in (1, 2, 3, 4) or not pending_xp:
+            return False
+        amount = u32_part(pending_xp)  # One native u32 award; the rest next batch.
+        if number == 2:
+            self.xp_pending -= amount
+        else:
+            self.xp_queues[number] -= amount
+        client.call_before(context, AWARD_XP, client.server + 0x10, amount)
+        self.record(event='native_xp_mirrored', amount=amount)
+        return True
+
+    def class_xp(self, client, layout):
+        """{class: (entry address, xp)} of the account's class XP table, or None if it does not look valid."""
+        account = client.server + layout['account']
+        entries, count = struct.unpack('<QQ', client.memory(account + 0x68, 16))
+        if not 0 <= count <= MAX_CLASS_ENTRIES or count and not entries:
+            return None
+        table = client.memory(entries, count * 32) if count else b''
+        return {table[i * 32 + 4]: (entries + i * 32, struct.unpack_from('<I', table, i * 32)[0]) for i in range(count)}
+
+    def remember_result_xp(self, client):
+        """Class XP at run start or after a finished (won) evaluation: no credit of this run is open in it."""
+        layout = result_evaluation()
+        table = self.class_xp(client, layout) if layout else None
+        self.result_open.pop(client.number, None)
+        if table is not None:
+            self.result_xp[client.number] = {cls: xp for cls, (_, xp) in table.items()}
+
+    def result_note(self, client, reason, **details):
+        """Log a kept credit once per player and reason (rearm runs at every revival)."""
+        key = client.number, reason
+        if key not in self.result_notes:
+            self.result_notes.add(key)
+            self.record(event='result_xp_kept', player=client.number, reason=reason, **details)
+
+    def rearm_result(self, client, reason):
+        """Let the run evaluation run once more, for a fallen player who plays on (revival, shared victory).
+
+        Native single-player ends the run at a fall, so its evaluation runs once per run: the once lock in front
+        of the map unlock stays set and the class XP of the whole run so far is credited. Here the fall is not the
+        end. The lock always opens again (map unlock at the victory). The class XP of the fall evaluation is taken
+        back, and the last evaluated phase cleared so that the real end (victory or team defeat) is evaluated and
+        credits the whole run once, like for a player who never fell; only if nothing but that fall evaluation
+        changed the account since the snapshot, otherwise nothing is written and it is logged once.
+        """
+        layout = result_evaluation()
+        number = client.number
+        if layout is None:
+            self.result_note(client, 'unsupported_build')
+            return
+        server = client.server
+        lock, last = client.memory(server + layout['lock'], 1)[0], client.memory(server + layout['last_phase'], 1)[0]
+        client.put(server + layout['lock'], b'\x00')
+        details = dict(player=number, reason=reason, was_locked=lock, last_phase=last)
+        if not lock:
+            self.record(event='result_rearmed', xp_taken_back=0, **details)  # No evaluation since the last rearm.
+            return
+        baseline, table = self.result_xp.get(number), self.class_xp(client, layout)
+        cls = client.memory(server + layout['class_id'], 1)[0]
+        victory = struct.unpack('<I', client.memory(server + layout['victory'], 4))[0]
+        if baseline is None or table is None:
+            self.result_note(client, 'no_snapshot' if baseline is None else 'invalid_table')
+        elif last != 4 or victory:
+            self.result_note(client, 'not_a_fall_evaluation', last_phase=last, victory=victory)
+        elif any(xp != baseline.get(c) for c, (_, xp) in table.items() if c != cls) or \
+                any(c not in table for c in baseline) or table.get(cls, (0, 0))[1] < baseline.get(cls, 0):
+            self.result_note(client, 'account_changed_otherwise', cls=cls)
+        else:
+            address, xp = table.get(cls, (None, baseline.get(cls, 0)))
+            credited = xp - baseline.get(cls, 0)
+            if credited:
+                client.put(address, struct.pack('<I', baseline.get(cls, 0)))
+            client.put(server + layout['last_phase'], b'\x00')
+            self.result_open[number] = cls, credited
+            self.record(event='result_rearmed', xp_taken_back=credited, cls=cls, **details)
+            return
+        self.record(event='result_rearmed', xp_taken_back=0, **details)
+
+    def keep_open_result(self, client):
+        """A run that ends without another evaluation (left after a revival) keeps the fall credit, once."""
+        if client.number not in self.result_open:
+            return
+        cls, credited = self.result_open.pop(client.number)
+        layout = result_evaluation()
+        if client.memory(client.server + layout['lock'], 1)[0]:
+            return  # A later evaluation credited the whole run already.
+        table = self.class_xp(client, layout)
+        baseline = (self.result_xp.get(client.number) or {}).get(cls, 0)
+        if table is None or cls not in table or table[cls][1] != baseline:
+            self.result_note(client, 'open_credit_not_restored', cls=cls, credited=credited)
+            return
+        client.put(table[cls][0], struct.pack('<I', baseline + credited))
+        self.record(event='result_open_credit_kept', player=client.number, cls=cls, credited=credited)
+
     def sync_revival(self, client, context):
         number = client.number
         teammates = [n for n in self.members if n != number]
@@ -1502,6 +1601,7 @@ class Bridge:
         before = self.native_states[number][1:]
         client.put(game + game_field(0x4A0), struct.pack('<f', health))
         client.put(game + game_field(0x7F8), struct.pack('<II', 0, 0))
+        self.rearm_result(client, 'revival')  # The fall already ran the once-per-run evaluation.
         # Native resume sends unroot + resume UI without resetting world/build/XP.
         client.put(game + game_field(0x8BF), b'\x03')
         def completed():

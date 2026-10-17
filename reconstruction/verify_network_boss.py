@@ -10,7 +10,7 @@ import time
 
 from boss_rewards import RNG, reward_items
 from group_online import GroupOnlineBridge
-from native_probe import ROOT, CHOOSE, DAMAGE, SPAWN_BOSS, UI_COMMAND, MAP_SELECT, ACTIVE_HASH, allocate, checked, game_field, q, _candidate_home
+from native_probe import ROOT, CHOOSE, DAMAGE, HURT, SPAWN_BOSS, UI_COMMAND, MAP_SELECT, ACTIVE_HASH, allocate, checked, game_field, q, _candidate_home
 from updated_layout import rva as relocated, field, enemy_layout
 from world_packets import UPDATE, objects, Reader
 
@@ -36,6 +36,12 @@ class NetworkBossVerification(GroupOnlineBridge):
         self.action_since = None
         self.resumed_clock = None
         self.progression_baseline = None
+        # --fall-before-victory: players 2, 3, 4, 1 each fall once (native lethal HURT) and are revived before
+        # the boss is damaged; the victory must still unlock the next map and credit the class XP once.
+        self.fall_order = (2, 3, 4, 1) if os.environ.get('COOP_VERIFY_FALL') == '1' else ()
+        self.fall_step = 0  # The host advances it; peers follow its messages.
+        self.fall_requested = self.fall_seen_down = None
+        self.class_xp_start = self.class_xp_alive = None
         self.extra_hooks += (MAP_SELECT,)
 
     def __call__(self, client, rva, context):
@@ -49,6 +55,22 @@ class NetworkBossVerification(GroupOnlineBridge):
                             sha256=ACTIVE_HASH, before_gameplay=True, classes=self.progression_baseline)
             return
         return super().__call__(client, rva, context)
+
+    def falls_pending(self):
+        return self.fall_step < len(self.fall_order)
+
+    def decorate(self, peer, message):
+        super().decorate(peer, message)
+        if self.number == 1 and self.fall_order:
+            message['fall_step'] = self.fall_step
+
+    def receive_peer(self, peer, message):
+        super().receive_peer(peer, message)
+        if self.number != 1 and 'fall_step' in message:
+            step = message['fall_step']
+            if type(step) is not int or not self.fall_step <= step <= len(self.fall_order):
+                raise ValueError('Invalid fall step')
+            self.fall_step = step
 
     def poll_network(self):
         super().poll_network()
@@ -72,6 +94,18 @@ class NetworkBossVerification(GroupOnlineBridge):
         phase = self.native_states[client.number][0]
         if self.boss_reward_pending.get(client.number) and self.rng_before is None:
             self.rng_before = client.memory(game + field('game', RNG), 32)
+        if self.fall_order:
+            from updated_layout import result_evaluation
+            table = self.class_xp(client, result_evaluation()) if client.number == self.number else None
+            if table is not None and phase == 1:
+                xp = {cls: value for cls, (_, value) in table.items()}
+                if self.class_xp_start is None:
+                    self.class_xp_start = xp
+                    self.record(event='network_class_xp', player=client.number, stage='start', xp=xp)
+                self.class_xp_alive = xp
+            elif table is not None and phase == 5 and not self.result_recorded:
+                self.record(event='network_class_xp', player=client.number, stage='victory',
+                            before=self.class_xp_alive, xp={cls: value for cls, (_, value) in table.items()})
         if phase == 5 and not self.result_recorded:
             self.result_recorded = True
             self.record(event='network_boss_result', player=client.number,
@@ -114,6 +148,28 @@ class NetworkBossVerification(GroupOnlineBridge):
                 raise ValueError('Invalid native talent choices')
             client.call_before(context, CHOOSE, game, (client.number - 1) % count)
             return True
+        if self.falls_pending() and self.enemy_snapshot and self.ready == set(self.members):
+            target = self.fall_order[self.fall_step]
+            if client.number == 1:
+                self.fall_seen_down = self.fall_seen_down or phases[target - 1] == 4
+                if self.fall_seen_down and phases == [1] * len(self.members):
+                    self.record(event='network_fall_revived', player=target)
+                    self.fall_step += 1
+                    self.fall_requested = self.fall_seen_down = None
+                    return super().before_batch(client, context)
+            if (client.number == target and phase == 1 and phases == [1] * len(self.members)
+                    and self.fall_requested != target):
+                from verify_network_coop import NetworkCoopVerification
+                if NetworkCoopVerification.lethal_guard_buffs(self, client, game):
+                    return super().before_batch(client, context)  # Native HURT ignores hits meanwhile.
+                self.fall_requested = target
+                self.record(event='network_lethal_hit', player=target)
+                def completed():
+                    if client.memory(game + game_field(0x8BF), 1)[0] == 1:
+                        self.fall_requested = None  # A native HURT guard buff ignored the hit: again next batch.
+                        self.record(event='network_lethal_retry', player=target)
+                client.call_before(context, HURT, game, next(iter(self.enemy_snapshot)), damage=10 ** 7, after=completed)
+                return True
         if phase == 1:
             client.put(game + game_field(0x4A0), struct.pack('<f', 100000))
             client.put(game + game_field(0x4F8), struct.pack('<f', 100000))
@@ -129,7 +185,8 @@ class NetworkBossVerification(GroupOnlineBridge):
                                        client.base + relocated(0x65EFA08) + 4 * 0x58, after=completed)
                     return True
                 second = int(self.host_clock)
-                if self.boss_guid in self.enemy_snapshot and second >= 30 and second != self.last_hit:
+                if (self.boss_guid in self.enemy_snapshot and second >= 30 and second != self.last_hit
+                        and not self.falls_pending()):
                     self.last_hit = second
                     client.call_before(context, DAMAGE, game, self.boss_guid, damage=100000)
                     return True
@@ -179,6 +236,52 @@ def verify(command=0):
         if command == 9:
             verify_return_to_roster(messages)
     return dict(players=4, independent_rolls=3, gold=results[0]['gold'], delivered=host['world_delivered'])
+
+
+def verify_falls(rows=None):
+    """Every player fell once and was revived; its fall evaluation was re-armed; the victory credited once."""
+    rows = rows or [[json.loads(line) for line in (ROOT / f'analysis/group-online-{n}.jsonl').read_text().splitlines()]
+                    for n in range(1, 5)]
+    assert [e['player'] for e in rows[0] if e['event'] == 'network_fall_revived'] == [2, 3, 4, 1], 'Fall order'
+    taken_back = {}
+    for number, events in enumerate(rows, 1):
+        revivals = [e for e in events if e['event'] == 'player_revived' and e['player'] == number]
+        assert len(revivals) == 1, (number, revivals)
+        rearmed = [e for e in events if e['event'] == 'result_rearmed' and e['player'] == number]
+        # The fall ran the native once-per-run evaluation (lock set); the revival opened it again.
+        revival = [e for e in rearmed if e['reason'] == 'revival']
+        assert [(e['reason'], e['was_locked'], e['last_phase']) for e in revival] == [('revival', 1, 4)], (number, rearmed)
+        # The shared victory may re-open an evaluation that never ran for a guest: nothing was
+        # locked there and nothing may be taken back.
+        others = [e for e in rearmed if e['reason'] != 'revival']
+        assert all(e['reason'] == 'shared_victory' and e['was_locked'] == 0 and not e.get('xp_taken_back')
+                   for e in others), (number, others)
+        assert not [e for e in events if e['event'] == 'result_xp_kept'], number  # Every fall credit taken back.
+        taken_back[number] = revival[0]['xp_taken_back']
+        start = next(e for e in events if e['event'] == 'network_class_xp' and e['stage'] == 'start')
+        victories = [e for e in events if e['event'] == 'network_class_xp' and e['stage'] == 'victory']
+        assert len(victories) == 1, (number, 'victory evaluated more than once', victories)
+        victory = victories[0]
+        # Right before the victory evaluation the class XP is the run's start value again (no fall credit
+        # left), and the victory evaluation then credits the whole run once.
+        assert class_xp(victory['before']) == class_xp(start['xp']), (number, start, victory)
+        assert sum(victory['xp'].values()) > sum(victory['before'].values()), (number, victory)
+    return dict(falls=4, revivals=4, fall_xp_taken_back=taken_back)
+
+
+def class_xp(values):
+    """Class XP with absent classes as 0: a fresh save has no entry before its class's first credit."""
+    return {str(k): v for k, v in (values or {}).items() if v}
+
+
+def check_unlock_records(number, class_id, records):
+    """One player's reloaded victory save: the party-earned next map is open (newly) in that save."""
+    complete = [r for r in records if r.get('event') == 'disposable_staging_complete']
+    assert complete, (number, 'save reload did not complete')
+    last = complete[-1]
+    assert (last.get('native_unlock_reload_verified') and last.get('expected_unlock_verified')
+            and last.get('newly_awarded_progression_verified')), (number, 'map unlock missing in the saved profile', last)
+    return dict(class_id=class_id, map=2, unlocked=True)
 
 
 def verify_return_to_roster(messages):
@@ -247,6 +350,7 @@ def verify_boss_replication(recordings, boss_guid):
 
 def verify_saved_progression():
     """Reload every actual victory save; no inferred award or invented baseline."""
+    unlocked = {}
     for number in range(1, 5):
         events = [json.loads(line) for line in (ROOT / f'analysis/group-online-{number}.jsonl').read_text().splitlines()]
         baselines = [e for e in events if e['event'] == 'native_progression_baseline']
@@ -264,17 +368,22 @@ def verify_saved_progression():
                 '--before-observation', str(baseline), '--require-unlock', str(result['class_id']), '2'],
                 stdout=stream, stderr=subprocess.STDOUT, check=True, timeout=420)
         records = [json.loads(line) for line in output.read_text().splitlines() if line.startswith('{')]
-        assert any(r.get('event') == 'disposable_staging_complete'
-                   and r.get('newly_awarded_progression_verified')
-                   and r.get('native_unlock_reload_verified') for r in records), number
-    return dict(map_progression=True, saves=True, native_saved_players=4)
+        unlocked[number] = check_unlock_records(number, result['class_id'], records)
+        print(f'[  OK  ] unlock_verified player {number} (class {result["class_id"]}: map 2 open in the '
+              f'reloaded save, newly earned in this run)', flush=True)
+    return dict(map_progression=True, saves=True, native_saved_players=4, unlock_verified=unlocked)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--victory-command', type=int, choices=(0, 8, 9), default=0)
+    parser.add_argument('--fall-before-victory', action='store_true',
+                        help='every player falls once and is revived before the boss victory (map unlock, class XP once)')
     args = parser.parse_args()
+    if args.fall_before_victory and args.victory_command:
+        parser.error('--fall-before-victory checks the plain victory')
     os.environ['COOP_VERIFY_VICTORY_COMMAND'] = str(args.victory_command)
+    os.environ['COOP_VERIFY_FALL'] = '1' if args.fall_before_victory else '0'
     processes, outputs = [], []
     try:
         for n in range(1, 5):
@@ -291,8 +400,14 @@ if __name__ == '__main__':
             process.wait(timeout=420)
         assert [p.returncode for p in processes] == [0] * 4
         result = verify(args.victory_command)
+        if args.fall_before_victory:
+            result.update(verify_falls())
         if args.victory_command == 0:
             result.update(verify_saved_progression())
+        if args.fall_before_victory:
+            # The point of the 0.0.15 fix: after a fall and revival, every player's save has the next map.
+            assert sorted(result.get('unlock_verified', {})) == [1, 2, 3, 4], result.get('unlock_verified')
+            result['fall_revival_unlock'] = True
         print(json.dumps(result), flush=True)
     finally:
         for process in processes:

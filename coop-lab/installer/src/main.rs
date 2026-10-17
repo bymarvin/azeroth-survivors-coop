@@ -281,26 +281,106 @@ fn run_updater(o: &Options, dir: &Path) -> Result<i32, String> {
     Ok(code)
 }
 
-fn shortcuts(dir: &Path, test_folder: Option<&Path>) -> Result<(), String> {
-    let quote = |p: &Path| p.display().to_string().replace('\'', "''");
-    let target = quote(&dir.join("Start-Coop.cmd"));
-    let icon = quote(&dir.join("AzerothSurvivors.exe"));
-    let folder = quote(dir);
-    let (menu, desk) = match test_folder {
-        Some(t) => (format!("'{}'", quote(&t.join("Programs"))), format!("'{}'", quote(&t.join("Desktop")))),
-        None => ("[Environment]::GetFolderPath('Programs')".into(), "[Environment]::GetFolderPath('Desktop')".into()),
+#[repr(C)]
+struct Guid(u32, u16, u16, [u8; 8]);
+const FOLDERID_DESKTOP: Guid = Guid(0xB4BFCC3A, 0xDB2C, 0x424C, [0xB0, 0x29, 0x7F, 0xE9, 0x9A, 0x87, 0xC6, 0x41]);
+const FOLDERID_PROGRAMS: Guid = Guid(0xA77F5D77, 0x2E2B, 0x44C3, [0xA6, 0xA2, 0xAB, 0xA6, 0x01, 0x05, 0x4A, 0x51]);
+
+#[link(name = "shell32")]
+extern "system" {
+    fn SHGetKnownFolderPath(id: *const Guid, flags: u32, token: *mut std::ffi::c_void, path: *mut *mut u16) -> i32;
+}
+#[link(name = "ole32")]
+extern "system" {
+    fn CoTaskMemFree(memory: *mut std::ffi::c_void);
+}
+
+/// The user's real Desktop / Start menu Programs folder (also when redirected, e.g. to OneDrive).
+fn known_folder(id: &Guid) -> Result<PathBuf, String> {
+    use std::os::windows::ffi::OsStringExt;
+    let mut raw: *mut u16 = std::ptr::null_mut();
+    let result = unsafe { SHGetKnownFolderPath(id, 0, std::ptr::null_mut(), &mut raw) };
+    let path = if result == 0 && !raw.is_null() {
+        let length = (0..).take_while(|&i| unsafe { *raw.add(i) } != 0).count();
+        Ok(PathBuf::from(std::ffi::OsString::from_wide(unsafe { std::slice::from_raw_parts(raw, length) })))
+    } else {
+        Err(format!("SHGetKnownFolderPath failed ({result:#x})"))
     };
-    let script = format!(
-        "$w = New-Object -ComObject WScript.Shell; \
-         $menu = Join-Path {menu} 'Azeroth Survivors Together.lnk'; \
-         $desk = Join-Path {desk} 'Azeroth Survivors Together.lnk'; \
-         foreach ($p in @($menu, $desk)) {{ $s = $w.CreateShortcut($p); $s.TargetPath = '{target}'; \
-         $s.WorkingDirectory = '{folder}'; $s.IconLocation = '{icon},0'; \
-         $s.Description = 'Azeroth Survivors Together co-op'; $s.Save() }}");
+    unsafe { CoTaskMemFree(raw.cast()) };
+    path
+}
+
+/// Where the two shortcuts go: the known folders, or <folder>\Desktop and \Programs (--shortcut-folder, tests).
+fn shortcut_paths(test_folder: Option<&Path>) -> Result<[PathBuf; 2], String> {
+    let (desktop, programs) = match test_folder {
+        Some(t) => (t.join("Desktop"), t.join("Programs")),
+        None => (known_folder(&FOLDERID_DESKTOP)?, known_folder(&FOLDERID_PROGRAMS)?),
+    };
+    Ok([desktop.join("Azeroth Survivors Together.lnk"), programs.join("Azeroth Survivors Together.lnk")])
+}
+
+/// PowerShell gets finished paths as single-quoted literals ('' for a quote inside), nothing to evaluate.
+fn shortcut_script(dir: &Path, links: &[PathBuf; 2]) -> String {
+    let quote = |p: &Path| format!("'{}'", p.display().to_string().replace('\'', "''"));
+    format!("$w = New-Object -ComObject WScript.Shell; \
+             foreach ($p in @({}, {})) {{ $s = $w.CreateShortcut($p); $s.TargetPath = {}; \
+             $s.WorkingDirectory = {}; $s.IconLocation = {}; \
+             $s.Description = 'Azeroth Survivors Together co-op'; $s.Save() }}",
+            quote(&links[0]), quote(&links[1]), quote(&dir.join("Start-Coop.cmd")), quote(dir),
+            quote(Path::new(&format!("{},0", dir.join("AzerothSurvivors.exe").display()))))
+}
+
+fn shortcuts(dir: &Path, test_folder: Option<&Path>) -> Result<(), String> {
+    let links = shortcut_paths(test_folder)?;
     let status = Command::new(system32(r"WindowsPowerShell\v1.0\powershell.exe"))
-        .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", &script])
+        .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", &shortcut_script(dir, &links)])
         .status().map_err(|e| e.to_string())?;
-    if status.success() { Ok(()) } else { Err(format!("PowerShell exit {:?}", status.code())) }
+    if !status.success() {
+        return Err(format!("PowerShell exit {:?}", status.code()));
+    }
+    match links.iter().find(|link| !link.is_file()) {
+        Some(missing) => Err(format!("{} was not created", missing.display())),
+        None => Ok(()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn known_folders_exist() {
+        for id in [&FOLDERID_DESKTOP, &FOLDERID_PROGRAMS] {
+            let folder = known_folder(id).expect("known folder");
+            assert!(folder.is_absolute() && folder.is_dir(), "{}", folder.display());
+        }
+        let links = shortcut_paths(None).unwrap();
+        assert!(links.iter().all(|l| l.file_name().unwrap() == "Azeroth Survivors Together.lnk"));
+    }
+
+    #[test]
+    fn script_quotes_paths_and_evaluates_nothing() {
+        let dir = Path::new(r"D:\Games\O'Brien's Azeroth");
+        let links = [PathBuf::from(r"C:\Users\x\Desktop\Azeroth Survivors Together.lnk"),
+                     PathBuf::from(r"C:\Users\x\Programs\Azeroth Survivors Together.lnk")];
+        let script = shortcut_script(dir, &links);
+        assert!(script.contains(r"'D:\Games\O''Brien''s Azeroth\Start-Coop.cmd'"), "{script}");
+        assert!(!script.contains("Join-Path") && !script.contains("[Environment]"), "{script}");
+    }
+
+    #[test]
+    fn shortcuts_are_created_with_the_real_powershell_line() {
+        let base = env::temp_dir().join(format!("azs-shortcut-test-{}", std::process::id()));
+        let game = base.join("O'Brien game");
+        for sub in ["Desktop", "Programs"] {
+            fs::create_dir_all(base.join(sub)).unwrap();
+        }
+        fs::create_dir_all(&game).unwrap();
+        shortcuts(&game, Some(&base)).expect("shortcuts");
+        assert!(base.join("Desktop").join("Azeroth Survivors Together.lnk").is_file());
+        assert!(base.join("Programs").join("Azeroth Survivors Together.lnk").is_file());
+        let _ = fs::remove_dir_all(&base);
+    }
 }
 
 const RELOCATED: &str = "COOP_INSTALLER_RELOCATED";

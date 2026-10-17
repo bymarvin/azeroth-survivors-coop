@@ -619,6 +619,7 @@ def test_adapter_candidate(binary, path, directory, *, progress=None):
                 ('economy', 'verify_group_online.py', ['--verify-economy'], ('shared_gold',)),
                 ('victory-continue', 'verify_network_boss.py', ['--victory-command', '8'], ('victory_keep_fighting',)),
                 ('victory-new-hero', 'verify_network_boss.py', ['--victory-command', '9'], ('victory_new_hero',)),
+                ('fall-unlock', 'verify_network_boss.py', ['--fall-before-victory'], ('fall_revival_unlock',)),
             )
             boss_home = None
             for name, script, arguments, cases in suites:
@@ -656,7 +657,7 @@ def test_adapter_candidate(binary, path, directory, *, progress=None):
                                     for value in ('--profile-save', f'{n}:{fixture}')]]
                             tested = run_verifier([str(ROOT / 'reconstruction' / script), *arguments],
                                 cwd=ROOT, env=environment, stdout=output,
-                                timeout=1200 if name == 'boss-rewards' else 420)
+                                timeout=1200 if name in ('boss-rewards', 'fall-unlock') else 420)
                             passed = tested.returncode == 0
                     except subprocess.TimeoutExpired:
                         passed = False

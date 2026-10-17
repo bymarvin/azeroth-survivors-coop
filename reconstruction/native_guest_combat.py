@@ -1006,6 +1006,18 @@ class _NativeCombatBridge(Bridge):
         client.call_before(context, DAMAGE, game, target, damage=damage, after=completed)
         return True
 
+    def shared_victory(self, client):
+        """Run the native victory path (save, root, result UI) on a guest, also one who was down at the victory."""
+        game = client.server + 0x10
+        # A guest who fell before the victory already had its run evaluated (without victory).
+        self.rearm_result(client, 'shared_victory')
+        client.put(game + game_field(0x7F0), struct.pack('<I', 1))
+        client.put(game + game_field(0x8B5), b'\x00')
+        client.put(game + game_field(0x8BF), b'\x01')
+        self.victory_requested = True
+        self.victory_guests.add(client.number)
+        self.record(event='shared_victory_requested')
+
     def before_batch(self, client, context):
         self.next_guest_attack = float('inf')
         if client.number not in self.ready:
@@ -1118,15 +1130,7 @@ class _NativeCombatBridge(Bridge):
                 return True
         elif client.number in self.ready:
             if self.native_states.get(1, (0,))[0] == 5 and client.number not in self.victory_guests:
-                # Run the native victory path (save, root, result UI), including
-                # a guest who was down when the host completed the objective.
-                game = client.server + 0x10
-                client.put(game + game_field(0x7F0), struct.pack('<I', 1))
-                client.put(game + game_field(0x8B5), b'\x00')
-                client.put(game + game_field(0x8BF), b'\x01')
-                self.victory_requested = True
-                self.victory_guests.add(client.number)
-                self.record(event='shared_victory_requested')
+                self.shared_victory(client)
             self.apply_shared_gold(client)
             if self.sync_chests(client, context):
                 return True

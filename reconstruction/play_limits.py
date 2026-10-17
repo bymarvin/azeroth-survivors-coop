@@ -21,6 +21,7 @@ MAX_MULTIPLIER = 1e6          # XP/gold/chest multipliers.
 MAX_COUNTER = 0xFFFFFFFF      # Native u32 counters: XP, gold, levels, state values.
 MAX_ENEMIES = 32768           # Enemies alive at once (native vector, wire snapshot, aura batch).
 MAX_LIVE_SUMMONS = 4096       # Live totems/companions/ground spells per player.
+MAX_CLASS_ENTRIES = 4096      # Class XP entries of one account (the game has a few dozen classes).
 SUMMON_HISTORY = 100000       # Summon identities per guest incl. destroyed ones (oldest destroyed dropped).
 MAX_QUEUE = 65536             # Per-batch queues and packet lists (effects, packets, UI, movement).
 MAX_NATIVE_OBJECTS = 1000000  # Native loot/projectile/gear vectors, loot objects on the wire.

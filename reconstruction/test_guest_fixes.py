@@ -855,7 +855,7 @@ class VersionTests(unittest.TestCase):
 
     def test_framework_version_names_the_hotfix(self):
         version = (Path(native.ROOT) / 'COOP-VERSION.txt').read_text(encoding='utf-8').strip()
-        self.assertEqual(version, '0.0.12-community+game-7264d50b')
+        self.assertEqual(version, '0.0.15-community+game-7264d50b')
         self.assertLessEqual(len(version), 32)  # Lobby server field limit.
 
 

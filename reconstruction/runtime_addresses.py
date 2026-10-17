@@ -685,7 +685,7 @@ class RuntimeAddresses:
             required = {'concurrent_menus', 'class_gear_selection', 'host_map', 'four_player_movement', 'four_player_combat',
                         'bosses', 'shared_xp', 'shared_gold', 'independent_talents', 'independent_loot',
                         'pause_resume', 'revival', 'saves', 'guest_departure', 'host_shutdown',
-                        'victory_keep_fighting', 'victory_new_hero', 'map_progression'}
+                        'victory_keep_fighting', 'victory_new_hero', 'map_progression', 'fall_revival_unlock'}
             if acceptance.get('identity') != profile['identity']:
                 raise ValueError('Source-bound native party acceptance is missing or stale; rerun compatibility testing')
             if (acceptance.get('failures') != [] or not acceptance.get('runs') or

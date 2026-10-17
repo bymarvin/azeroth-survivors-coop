@@ -111,6 +111,27 @@ def family(key):
     return FAMILY[build_variant()][key]
 
 
+# The native run evaluation (TICK calls it once per new phase 4/5, i.e. also when a co-op player falls), server
+# offsets: lock = once-per-run lock in front of the map unlock, last_phase = last evaluated phase (TICK evaluates
+# only a phase different from it), account = account whose class XP table (+0x68 entries of 32 B: u32 xp, u8 class
+# at +4; +0x70 count) it credits on every call, class_id = the run's class byte, victory = victory flag (u32);
+# sites = the lock's check and set (RVA) for the static check. Pattern scan of each build: cmp byte [r13+lock],0 ..
+# mov byte [r13+lock],1 in the result function, and/cl,6 cmp cl,4 cmp [rsi+last_phase],al in TICK, the function's
+# movzx [rcx+class_id] / mov [rcx+victory] and lea [r13+account] / [r13+account+0x68].
+RESULT_EVALUATION = {
+    '0843': dict(lock=0xDFA, last_phase=0xDFC, account=0x940, class_id=0x35C, victory=0x820, sites=(0x53E6438, 0x53E6461)),
+    '47e4': dict(lock=0xFA2, last_phase=0xFA4, account=0x9A8, class_id=0x294, victory=0x868, sites=(0x53F12E8, 0x53F1311)),
+    '0931': dict(lock=0xFBA, last_phase=0xFBC, account=0x9A8, class_id=0x294, victory=0x868, sites=(0x53F0E88, 0x53F0EB1)),
+    '7264': dict(lock=0xFBA, last_phase=0xFBC, account=0x9A8, class_id=0x294, victory=0x868, sites=(0x542E3F8, 0x542E421)),
+    'reviewed': None,  # Reference build 20d4ce5f: no executable to verify against, so not supported.
+}
+
+
+def result_evaluation():
+    """Offsets of the native run evaluation for this build, or None where they are not verified."""
+    return RESULT_EVALUATION.get(build_variant())
+
+
 # Native sub-object layouts that are not adapter fields (records inside native vectors).
 ENEMY_LAYOUTS = {
     # stride, guid offset, struct from +0x68: dead, guid, hp, start pose, end pose, began, duration

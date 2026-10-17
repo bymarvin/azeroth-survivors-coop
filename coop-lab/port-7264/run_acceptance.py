@@ -3,7 +3,7 @@
 Same suites, arguments and environment as reconstruction/build_hooks.test_adapter_candidate.
 Every run gets a fresh coop-lab/compatibility-tests/<suite>-* directory (disposable saves).
 Writes coop-lab/port-7264/out/acceptance-7264.json; the official binding run is the full
-suite list (all 20 cases incl. druid_forms, surrender), after which analysis/active-hooks.json can be written.
+suite list (all 21 cases incl. druid_forms, surrender, fall_revival_unlock), after which analysis/active-hooks.json can be written.
 
   run_acceptance.py [--suites movement,pause-revival,...]   (default: all, in the official order)
 """
@@ -38,6 +38,9 @@ SUITES = (
     ('economy', 'verify_group_online.py', ['--verify-economy'], ('shared_gold',)),
     ('victory-continue', 'verify_network_boss.py', ['--victory-command', '8'], ('victory_keep_fighting',)),
     ('victory-new-hero', 'verify_network_boss.py', ['--victory-command', '9'], ('victory_new_hero',)),
+    # 0.0.15: every player falls once and is revived before the boss victory: next map unlocked for all four,
+    # class XP credited once (the native run evaluation already ran at each fall).
+    ('fall-unlock', 'verify_network_boss.py', ['--fall-before-victory'], ('fall_revival_unlock',)),
     # 0.95.0: druid Cat/Dire Bear forms (display model) of host and guest reach every client.
     ('druid-forms', 'verify_druid_forms.py', [], ('druid_forms',)),
     # 0.95.0: menu "give up" - a guest leaves alone, the host ends the run for everyone.
@@ -110,7 +113,7 @@ def main():
         with (home / 'verification.log').open('w', encoding='utf-8') as output:
             try:
                 tested = run_verifier([str(ROOT / 'reconstruction' / script), *arguments, *extra], cwd=ROOT, env=env,
-                                      stdout=output, timeout=1200 if name == 'boss-rewards' else 420)
+                                      stdout=output, timeout=1200 if name in ('boss-rewards', 'fall-unlock') else 420)
                 passed = tested.returncode == 0
             except subprocess.TimeoutExpired:
                 passed, timed_out = False, True

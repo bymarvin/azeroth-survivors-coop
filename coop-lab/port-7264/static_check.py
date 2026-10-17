@@ -180,6 +180,40 @@ def main():
         return f'Wegfeld {site:#x}, Recycle {[hex(x[0]) for x in family("recycle")]}, Treffer {ret:#x} nach {call.mnemonic} {call.op_str}'
     step('Familien-Stellen (Wegfeld, Recycle, Treffer) gegen exe', family_sites)
 
+    def result_evaluation_sites():
+        """Lock of the run evaluation (map unlock once per run) and TICK's last-phase check, as visibility_bridge
+        rearm_result writes them: cmp byte [r13+lock],0 / mov byte [r13+lock],1 / cmp byte [rsi+last],al."""
+        import pefile
+        from updated_layout import result_evaluation
+        pe = pefile.PE(str(exe), fast_load=True)
+        layout = result_evaluation()
+        check, store = layout['sites']
+        lock = struct.pack('<i', layout['lock'])
+        if pe.get_data(check, 8) != b'\x41\x80\xbd' + lock + b'\x00':
+            raise ValueError(f'Sperr-Prüfung {check:#x}: {pe.get_data(check, 8).hex()}')
+        if pe.get_data(store, 8) != b'\x41\xc6\x85' + lock + b'\x01':
+            raise ValueError(f'Sperr-Setzen {store:#x}: {pe.get_data(store, 8).hex()}')
+        text = next(s for s in pe.sections if s.Name.rstrip(b'\0') == b'.text')
+        trigger = b'\x80\xe1\x06\x80\xf9\x04\x75\x0c\x38\x86' + struct.pack('<i', layout['last_phase'])
+        data = text.get_data()
+        start = data.find(trigger)
+        if start < 0 or data.find(trigger, start + 1) >= 0:
+            raise ValueError('TICK-Auslöser (Phase 4/5, letzte Phase) nicht genau einmal gefunden')
+        account = pe.get_data(layout['sites'][0] - 0x1000, 0x1000)
+        acc = struct.pack('<i', layout['account'])
+        if b'\x49\x8d\x9d' + acc + b'\x49\x8b\x85' + struct.pack('<i', layout['account'] + 0x68) not in account:
+            raise ValueError('Klassen-XP-Tabelle des Kontos nicht in der Ergebnisfunktion gefunden')
+        # Function start: movzx eax, byte [rcx+class_id] (credited class) and mov r13d, [rcx+victory] (bonus).
+        head = pe.get_data(layout['sites'][0] - 0x1200, 0x1200)
+        for name, pattern in (('Klasse', b'\x0f\xb6\x81' + struct.pack('<i', layout['class_id'])),
+                              ('Siegflag', b'\x44\x8b\xa9' + struct.pack('<i', layout['victory']))):
+            if pattern not in head:
+                raise ValueError(f'{name} der Ergebnisfunktion nicht gefunden')
+        return (f'Sperre {layout["lock"]:#x} @{check:#x}/@{store:#x}, letzte Phase {layout["last_phase"]:#x} '
+                f'@{text.VirtualAddress + start:#x}, Konto {layout["account"]:#x}, Klasse {layout["class_id"]:#x}, '
+                f'Siegflag {layout["victory"]:#x}')
+    step('Run-Auswertung (Sperre, letzte Phase, Klassen-XP) gegen exe', result_evaluation_sites)
+
     ok = sum(1 for _, passed in RESULTS if passed)
     log('INFO', f'Zusammenfassung: {ok}/{len(RESULTS)} bestanden ({time.time() - T0:.1f} s); Ausgaben in {home}')
     return 0 if ok == len(RESULTS) else 1
